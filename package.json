@@ -1,0 +1,61 @@
+{
+  "name": "@prcompass/cli",
+  "version": "0.0.0",
+  "description": "PR Compass CLI — runs the deterministic OSS analysis pipeline against a local git repo or a GitHub PR.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "prcompass": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "code-review",
+    "pull-request",
+    "cli",
+    "git",
+    "static-analysis",
+    "deterministic"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prcompass/prcompass.git",
+    "directory": "packages/cli"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "smoke": "node dist/cli.js analyze --local --repo ../.. --diff HEAD~1"
+  },
+  "dependencies": {
+    "@prcompass/core": "workspace:*",
+    "@prcompass/pr-triage-filter": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false
+}
