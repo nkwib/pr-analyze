@@ -1,6 +1,6 @@
 {
   "name": "@prcompass/cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "PR Compass CLI — runs the deterministic OSS analysis pipeline against a local git repo or a GitHub PR.",
   "license": "Apache-2.0",
   "private": true,

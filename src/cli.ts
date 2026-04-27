@@ -23,7 +23,7 @@ program
   .description(
     "PR Compass CLI — deterministic OSS analysis of a git diff against the repo's history.",
   )
-  .version("0.0.0");
+  .version("0.1.0");
 
 program
   .command("analyze")
