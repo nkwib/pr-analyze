@@ -1,0 +1,122 @@
+---
+title: '@prcompass/cli · Commands'
+---
+
+<svelte:head>
+  <title>@prcompass/cli · Commands</title>
+  <meta
+    name="description"
+    content="Complete command reference for the prcompass CLI: analyze, every flag, every default."
+  />
+</svelte:head>
+
+# Commands
+
+The CLI exposes **one** subcommand: `analyze`. Everything you can do with the binary flows through it. Each section below documents flags, defaults, and the smallest invocation that demonstrates them.
+
+```sh
+prcompass --help                # top-level
+prcompass analyze --help        # subcommand
+prcompass --version             # prints "0.1.0"
+```
+
+## `prcompass analyze`
+
+Analyse a git diff. Outputs JSON to stdout by default; pass `--format human` for a terminal-friendly summary.
+
+```sh
+prcompass analyze [options]
+```
+
+### Required flags
+
+| Flag             | Default       | Meaning                                                                                              |
+| ---------------- | ------------- | ---------------------------------------------------------------------------------------------------- |
+| `--repo <path>`  | `process.cwd()` | Path to a local git repository. Resolved to an absolute path before being passed to the adapter.   |
+| `--diff <range>` | _(no default)_ | Git diff range. See [diff range syntax](/docs#diff-range) for accepted forms. |
+
+```sh
+prcompass analyze --repo . --diff HEAD~1..HEAD
+```
+
+### Optional flags
+
+| Flag                | Default | Meaning                                                                              |
+| ------------------- | ------- | ------------------------------------------------------------------------------------ |
+| `--local`           | `true`  | Use the `LocalAdapter`. Currently the only mode supported by the CLI binary.         |
+| `--format <kind>`   | `json`  | One of `json` \| `human`. `human` writes a terminal summary; `json` is pipe-friendly. |
+| `--pretty`          | `false` | Pretty-print JSON output with 2-space indent. No effect when `--format human`.      |
+| `--max-commits <n>` | `5000`  | Cap commit-history walk. Higher values trade analysis latency for older history.    |
+
+### Examples
+
+```sh
+# Default — compact JSON to stdout
+prcompass analyze --repo . --diff HEAD~1
+
+# Human summary on the terminal
+prcompass analyze --repo . --diff main..HEAD --format human
+
+# Pretty JSON for inspection
+prcompass analyze --repo . --diff HEAD~5 --pretty
+
+# Cap commit walk on a large repo (faster but lower-resolution churn / cochange)
+prcompass analyze --repo /path/to/big-repo --diff main..feature --max-commits 1000
+
+# Pipe the result into jq
+prcompass analyze --repo . --diff HEAD~1 | jq '.triage.verdicts | group_by(.verdict) | map({verdict: .[0].verdict, count: length})'
+```
+
+### What it runs
+
+Behind the scenes, `analyze` does:
+
+1. Resolves `--diff` into `(baseSha, headSha)` via `git rev-parse`.
+2. Calls the configured adapter's `collect()` method to produce an `AnalyzeContext` (commits + diff + optional PR metadata).
+3. Runs the deterministic engine from `@prcompass/core` (mining → churn → cochange → hotspots → risk).
+4. Runs the file triage from `@prcompass/pr-triage-filter` over the diff files.
+5. Serialises the combined output (`CliAnalysisOutput`).
+
+Each step is **deterministic** — same inputs, same bytes out. See the [output schema](/output-schema) for what each step contributes.
+
+## Help text
+
+The CLI uses [`commander`](https://www.npmjs.com/package/commander) internally. `--help` is generated automatically:
+
+```text
+$ prcompass --help
+Usage: prcompass [options] [command]
+
+PR Compass CLI — deterministic OSS analysis of a git diff against the
+repo's history.
+
+Options:
+  -V, --version       output the version number
+  -h, --help          display help for command
+
+Commands:
+  analyze [options]   Analyse a git diff. Outputs JSON to stdout by
+                      default; pass --format human for a terminal-friendly
+                      summary.
+  help [command]      display help for command
+```
+
+```text
+$ prcompass analyze --help
+Usage: prcompass analyze [options]
+
+Options:
+  --repo <path>        path to a local git repository (default: cwd)
+  --diff <range>       git diff range (e.g. "HEAD~1..HEAD", "main..feature",
+                       or a single ref interpreted as "<ref>..HEAD")
+  --local              use the LocalAdapter (default)
+  --format <kind>      output format (choices: "json", "human", default:
+                       "json")
+  --pretty             pretty-print JSON output
+  --max-commits <n>    cap commit history walk (default: "5000")
+  -h, --help           display help for command
+```
+
+## Future commands
+
+The package's surface is **deliberately one command** for v0.1.x. Future commands (e.g. `prcompass diff`, `prcompass risk`) would each take a focused slice of the analysis output rather than re-running the pipeline. None are scheduled at the time of writing.

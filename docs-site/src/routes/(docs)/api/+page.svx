@@ -1,0 +1,196 @@
+---
+title: '@prcompass/cli · Programmatic API'
+---
+
+<svelte:head>
+  <title>@prcompass/cli · Programmatic API</title>
+  <meta
+    name="description"
+    content="Programmatic API for @prcompass/cli — LocalAdapter, GitHubAdapter, runAnalyzeCommand, analyzeCollectedContext, formatHuman, formatJson."
+  />
+</svelte:head>
+
+# Programmatic API
+
+Most users want the binary entry point (`npx prcompass analyze ...`). This module is for callers who want to integrate the CLI's pipeline into their own Node code — a custom GitHub Action runner, a long-running service that re-uses one Octokit, an internal dashboard.
+
+```ts
+import {
+  GitHubAdapter,
+  LocalAdapter,
+  runAnalyzeCommand,
+  analyzeCollectedContext,
+  formatHuman,
+  formatJson,
+  type CliAnalysisOutput,
+  type GitHubAdapterOpts,
+  type LocalAdapterOpts,
+  type GitHubClientLike,
+  type JsonFormatOpts
+} from '@prcompass/cli';
+```
+
+## Adapters
+
+### `LocalAdapter`
+
+```ts
+class LocalAdapter implements ProviderAdapter {
+  readonly name: 'local';
+  constructor(opts: LocalAdapterOpts);
+  collect(): Promise<AnalyzeContext>;
+}
+
+interface LocalAdapterOpts {
+  /** Absolute path to a local git repository. */
+  readonly repoDir: string;
+  /** Diff range. Accepts ranges, branch pairs, or a single ref. */
+  readonly diff: string;
+  /** Cap commit history walk. Default 5000. */
+  readonly maxCommits?: number;
+  /** Inject a fake `runGit` for tests. */
+  readonly gitRunner?: GitRunner;
+}
+```
+
+Spawns `git` in `repoDir` to read commit history and the requested diff. Performs **zero network I/O** — safe for offline analysis and air-gapped environments. Determinism: given the same `repoDir` state and the same `diff`, output is bit-identical across runs.
+
+```ts
+const adapter = new LocalAdapter({
+  repoDir: '/abs/path/to/repo',
+  diff: 'main..HEAD'
+});
+const ctx = await adapter.collect();
+```
+
+### `GitHubAdapter`
+
+```ts
+class GitHubAdapter implements ProviderAdapter {
+  readonly name: 'github';
+  constructor(opts: GitHubAdapterOpts);
+  collect(): Promise<AnalyzeContext>;
+}
+
+interface GitHubAdapterOpts {
+  readonly repoDir: string;            // local clone — engine reads from here
+  readonly octokit: GitHubClientLike;  // bring your own Octokit
+  readonly owner: string;
+  readonly repo: string;
+  readonly pullNumber: number;
+}
+```
+
+Combines a local clone (which feeds the deterministic engine) with PR metadata fetched via your Octokit instance. The adapter does **not** instantiate Octokit — you control auth, rate limits, and retries.
+
+```ts
+import { Octokit } from '@octokit/rest';
+
+const adapter = new GitHubAdapter({
+  repoDir: '/abs/path/to/local-clone',
+  octokit: new Octokit({ auth: process.env.GITHUB_TOKEN }),
+  owner: 'nkwib',
+  repo: 'prcompass-cli',
+  pullNumber: 42
+});
+```
+
+`GitHubClientLike` is a structural type — anything with the right `rest.pulls.get` shape works (Octokit, mocks, custom clients).
+
+## Running the analysis
+
+### `runAnalyzeCommand(adapter)`
+
+```ts
+function runAnalyzeCommand(adapter: ProviderAdapter): Promise<CliAnalysisOutput>;
+```
+
+End-to-end: calls `adapter.collect()`, runs the deterministic core, runs the triage pass, returns the combined output. This is what the binary does.
+
+```ts
+const adapter = new LocalAdapter({ repoDir: '.', diff: 'HEAD~1' });
+const output = await runAnalyzeCommand(adapter);
+```
+
+### `analyzeCollectedContext(ctx, adapterName)`
+
+```ts
+function analyzeCollectedContext(
+  ctx: AnalyzeContext,
+  adapterName: string
+): CliAnalysisOutput;
+```
+
+**Pure** — no I/O. Takes an already-collected `AnalyzeContext` (from `adapter.collect()` or constructed by hand in tests) and runs the engine + triage. Useful for snapshot tests and for callers who want to cache the collection step.
+
+```ts
+const ctx = await adapter.collect();
+const output = analyzeCollectedContext(ctx, adapter.name);
+```
+
+## Formatting
+
+### `formatJson(output, opts?)`
+
+```ts
+function formatJson(
+  output: CliAnalysisOutput,
+  opts?: JsonFormatOpts
+): string;
+
+interface JsonFormatOpts {
+  /** Pretty-print with 2-space indent. Default false (compact). */
+  readonly pretty?: boolean;
+}
+```
+
+Stable JSON serialisation — no replacer, deterministic given a deterministic input. The core analysis is engineered to be JSON-clean (no `Map`, no `Date`, no functions); the CLI output inherits that.
+
+```ts
+process.stdout.write(formatJson(output, { pretty: true }));
+process.stdout.write('\n');
+```
+
+### `formatHuman(output)`
+
+```ts
+function formatHuman(output: CliAnalysisOutput): string;
+```
+
+A terminal-friendly summary. ANSI-free (no colors) so it copy-pastes cleanly into issues and chat. Designed for at-a-glance review, not parsing — use `formatJson` for machine consumption.
+
+## Types
+
+### `CliAnalysisOutput`
+
+```ts
+interface CliAnalysisOutput extends AnalysisOutput {
+  readonly triage: ClassifyResult;
+  readonly adapter: { readonly name: string };
+}
+```
+
+Extends [`AnalysisOutput`](https://github.com/nkwib/prcompass-core) from `@prcompass/core` with the triage layer and adapter identity. The shape is documented in detail at [/output-schema](/output-schema).
+
+## Putting it together
+
+```ts
+import { LocalAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
+
+async function main() {
+  const adapter = new LocalAdapter({
+    repoDir: process.cwd(),
+    diff: process.argv[2] ?? 'HEAD~1'
+  });
+
+  const output = await runAnalyzeCommand(adapter);
+  process.stdout.write(formatJson(output, { pretty: true }) + '\n');
+}
+
+main().catch((err) => {
+  process.stderr.write(`prcompass: ${err.message}\n`);
+  process.exit(1);
+});
+```
+
+That snippet is functionally equivalent to `prcompass analyze --pretty`. The binary adds flag parsing (`commander`), exit-code wiring, and the `human` formatter dispatch — but the analysis itself is identical.

@@ -1,0 +1,214 @@
+---
+title: '@prcompass/cli · Output schema'
+---
+
+<svelte:head>
+  <title>@prcompass/cli · Output schema</title>
+  <meta
+    name="description"
+    content="Stable JSON output of `prcompass analyze`. version, head, pr, diff, mining, hotspots, churn, cochange, risk, triage, adapter."
+  />
+</svelte:head>
+
+# Output schema
+
+`prcompass analyze` writes one JSON document to stdout. The top-level keys are versioned by `version` (== `ANALYSIS_SCHEMA_VERSION` from `@prcompass/core`) — pin to the major when you integrate.
+
+```ts
+interface CliAnalysisOutput {
+  version: string;          // e.g. "0.1.0"
+  head: { sha: string; baseSha: string };
+  pr: PrMetadata | null;    // null in --local mode
+  diff: { fileCount: number; files: DiffFile[] };
+  mining: MineStats;
+  hotspots: HotspotsReport;
+  churn: ChurnReport;
+  cochange: CochangeReport;
+  risk: RiskReport;
+  triage: { verdicts: FileVerdict[] };
+  adapter: { name: string };  // "local" | "github"
+}
+```
+
+Every numeric claim in `risk` is **grounded** by real commit SHAs in `groundedIn` — or it is `null`. The CLI never fabricates a `0` to mean "no signal".
+
+## Top-level keys
+
+### `version`
+
+The `ANALYSIS_SCHEMA_VERSION` constant from `@prcompass/core`. Independent of the package's npm version, so you can pin parsers without pinning the binary.
+
+```json
+"version": "0.1.0"
+```
+
+### `head`
+
+The resolved SHAs at the endpoints of `--diff`. Useful for caching and for cross-referencing tools that work in SHA space.
+
+```json
+"head": {
+  "sha":     "def567812345678123456781234567812345678",
+  "baseSha": "abc123412345678123456781234567812345678"
+}
+```
+
+### `pr`
+
+PR metadata — present only when a `GitHubAdapter` was used; otherwise `null`. Local-mode runs never produce a non-null `pr`.
+
+```json
+"pr": {
+  "number": 42,
+  "title": "Migrate session middleware to JWE",
+  "author": "alice",
+  "createdAt": "2026-04-01T12:00:00Z"
+}
+```
+
+### `diff`
+
+The set of files touched in `--diff`. `fileCount` is `files.length` — duplicated for cheap header-style summaries that don't want to traverse the array.
+
+```json
+"diff": {
+  "fileCount": 8,
+  "files": [
+    {
+      "path": "src/billing/checkout.ts",
+      "previousPath": null,
+      "status": "modified",
+      "additions": 30,
+      "deletions": 5,
+      "patch": "@@ -10,3 +10,4 @@\n ..."
+    }
+  ]
+}
+```
+
+`status` is one of `added | modified | removed | renamed | copied`. The triage pass below maps `removed → deleted` and `copied → renamed` to match `@prcompass/pr-triage-filter`'s vocabulary.
+
+### `mining`
+
+Bug-fix vs total commit stats over the walked history.
+
+```json
+"mining": {
+  "totalCommits": 5000,
+  "bugFixCommits": 904,
+  "bugFixRate": 0.1808
+}
+```
+
+### `hotspots`
+
+Bayesian-smoothed bug-fix density per file. The report is a map from path → `{score, totalCommits, bugFixCommits, groundedIn}`.
+
+```json
+"hotspots": {
+  "byFile": {
+    "src/billing/checkout.ts": {
+      "score": 0.74,
+      "totalCommits": 38,
+      "bugFixCommits": 12,
+      "groundedIn": ["abc1234", "def5678", "..."]
+    }
+  }
+}
+```
+
+### `churn`
+
+Per-file commit count, bug-fix count, defect density, first/last touch.
+
+```json
+"churn": {
+  "byFile": {
+    "src/billing/checkout.ts": {
+      "commitCount": 38,
+      "bugFixCount": 12,
+      "defectDensity": 0.316,
+      "firstTouched": "2025-09-12T09:14:00Z",
+      "lastTouched": "2026-04-22T17:03:00Z"
+    }
+  }
+}
+```
+
+### `cochange`
+
+File × file co-modification graph. Edges carry both raw counts and a Jaccard-style weight.
+
+```json
+"cochange": {
+  "edges": [
+    {
+      "a": "src/billing/checkout.ts",
+      "b": "src/billing/invoice.ts",
+      "count": 18,
+      "jaccard": 0.82
+    }
+  ]
+}
+```
+
+### `risk`
+
+Per-file combined risk score with `groundedIn` SHA pointers and caveats.
+
+```json
+"risk": {
+  "byFile": {
+    "src/billing/checkout.ts": {
+      "score": 0.78,
+      "tier": "high",
+      "groundedIn": ["abc1234", "def5678"],
+      "caveats": ["short history (38 commits)"]
+    }
+  }
+}
+```
+
+`score` is in `[0, 1]`. `tier` is one of `low | medium | high`. `score === null` means "no signal" — never confuse with `0`.
+
+### `triage`
+
+The Tier 1 file-priority verdicts from [`@prcompass/pr-triage-filter`](https://github.com/nkwib/prcompass-pr-triage-filter).
+
+```json
+"triage": {
+  "verdicts": [
+    {
+      "path": "pnpm-lock.yaml",
+      "verdict": "skip",
+      "ruleId": "lockfile",
+      "reason": "Package lockfile — content is auto-generated"
+    },
+    {
+      "path": "src/billing/checkout.ts",
+      "verdict": "review-candidate",
+      "ruleId": "default",
+      "reason": "Production source code outside tests, docs, and config paths."
+    }
+  ]
+}
+```
+
+`ruleId` is part of the public contract — safe to pattern-match.
+
+### `adapter`
+
+Identifies which adapter produced the context. Useful in logs and replay scenarios.
+
+```json
+"adapter": { "name": "local" }
+```
+
+## Stability
+
+- The set of top-level keys is **stable** within a major version of `version`.
+- New top-level keys may be added in minor versions.
+- Removing or renaming a key is a major-version break.
+- Numeric ranges (`score ∈ [0, 1]`, `verdict ∈ skip|skim|review-candidate`) are part of the contract.
+
+The schema is engineered to be JSON-clean — no `Map`, no `Date`, no functions. `JSON.parse(formatJson(output))` always round-trips losslessly.

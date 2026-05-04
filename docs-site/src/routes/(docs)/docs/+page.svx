@@ -1,0 +1,124 @@
+---
+title: '@prcompass/cli · Guide'
+---
+
+<svelte:head>
+  <title>@prcompass/cli · Guide</title>
+  <meta
+    name="description"
+    content="PR Compass CLI — runs the deterministic OSS analysis pipeline against a local git repo or a GitHub PR. Triage + churn + cochange + hotspots + risk."
+  />
+</svelte:head>
+
+# Guide
+
+The PR Compass CLI runs the deterministic OSS analysis pipeline over a git diff. Output is **JSON by default** (one document to stdout); pass `--format human` for a terminal-friendly summary.
+
+ESM-only. Requires **Node 20+** and **`git` available on `$PATH`**.
+
+<h2 id="install">Install</h2>
+
+```sh
+# Global (provides the `prcompass` binary on PATH)
+npm install -g @prcompass/cli
+
+# Or run ad-hoc without installing
+npx @prcompass/cli analyze --repo . --diff HEAD~1
+```
+
+The package is `private: true` in the source tree — when published, install via the public registry name once it ships.
+
+<h2 id="quick-start">Quick start</h2>
+
+The most common invocation: analyse the last commit on the current branch.
+
+```sh
+prcompass analyze --repo . --diff HEAD~1
+```
+
+A single ref expands to `<ref>..HEAD`, so this is equivalent to `--diff HEAD~1..HEAD`.
+
+```sh
+# Compare your feature branch against main
+prcompass analyze --repo . --diff main..feature
+
+# Pretty-print JSON (no effect with --format human)
+prcompass analyze --repo . --diff HEAD~1 --pretty
+
+# Terminal-friendly summary
+prcompass analyze --repo . --diff HEAD~1 --format human
+```
+
+The default output is one compact JSON document on stdout. Pipe it.
+
+```sh
+# What did the triage filter say?
+prcompass analyze --repo . --diff HEAD~5 | jq '.triage.verdicts'
+
+# Show only files with risk score >= 0.5
+prcompass analyze --repo . --diff main | jq '.risk.byFile | to_entries | map(select(.value.score >= 0.5))'
+```
+
+<h2 id="diff-range">Diff range syntax</h2>
+
+`--diff` accepts the forms `git rev-parse` understands, with one shortcut.
+
+| Form               | Meaning                                                 |
+| ------------------ | ------------------------------------------------------- |
+| `HEAD~1..HEAD`     | Canonical range form — base..head.                      |
+| `main..feature`    | Branch comparison.                                      |
+| `HEAD~3`           | Single ref — expanded to `<ref>..HEAD`.                 |
+| `abc1234..def5678` | SHAs work directly.                                     |
+
+Tags, remote refs (`origin/main`), and reflog references all work — anything `git rev-parse` can resolve in the configured `--repo`.
+
+<h2 id="adapters">Adapters</h2>
+
+The CLI ships two adapters. Both produce the same `AnalyzeContext` shape, so the same engine runs over either.
+
+### `LocalAdapter` (default)
+
+Shells out to `git` against a local repository. **No network.** Used implicitly by the `analyze` command. Air-gap-safe.
+
+```sh
+prcompass analyze --repo /path/to/repo --diff main..HEAD
+```
+
+### `GitHubAdapter`
+
+Programmatic only — there is no `--github` flag. Use it when you have a local clone *and* want to enrich the result with PR metadata (number, title, author). You provide the Octokit client; the adapter never instantiates one for you.
+
+```ts
+import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
+import { Octokit } from '@octokit/rest';
+
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+const adapter = new GitHubAdapter({
+  repoDir: '/abs/path/to/local-clone',
+  octokit,
+  owner: 'nkwib',
+  repo: 'prcompass-cli',
+  pullNumber: 42
+});
+
+const output = await runAnalyzeCommand(adapter);
+process.stdout.write(formatJson(output, { pretty: true }));
+```
+
+The local clone is what feeds the deterministic engine — the GitHub API enriches the output with `pr` metadata, but does not influence the per-file metrics.
+
+<h2 id="exit-codes">Exit codes</h2>
+
+| Code | Meaning                                                                  |
+| ---- | ------------------------------------------------------------------------ |
+| `0`  | Analysis succeeded; JSON written to stdout.                              |
+| `1`  | Unrecoverable error during collection or analysis (printed to stderr).   |
+
+The CLI **never** exits non-zero based on what the analysis *found* — risk scores, hotspot counts, and triage verdicts are all data, not policy. Wrap the JSON in your own gate if you want to fail a build on, say, `risk >= 0.8`.
+
+## Where next
+
+- [Commands](/commands) — every flag of `analyze`, with examples.
+- [Output schema](/output-schema) — what's in the JSON document, key by key.
+- [Programmatic API](/api) — `LocalAdapter`, `GitHubAdapter`, `runAnalyzeCommand`, `formatJson`, `formatHuman`.
+- [Examples](/examples) — `jq` recipes, GitHub Actions, CI gates.
