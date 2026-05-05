@@ -17,7 +17,7 @@
     // Apply stored theme before paint to avoid FOUC.
     (function () {
       try {
-        var stored = localStorage.getItem('prcompass-cli-theme');
+        var stored = localStorage.getItem('pr-analyze-theme');
         var theme =
           stored === 'light' || stored === 'dark'
             ? stored

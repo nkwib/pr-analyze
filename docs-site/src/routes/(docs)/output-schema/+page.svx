@@ -173,7 +173,7 @@ Per-file combined risk score with `groundedIn` SHA pointers and caveats.
 
 ### `triage`
 
-The Tier 1 file-priority verdicts from [`@prcompass/pr-triage-filter`](https://github.com/nkwib/prcompass-pr-triage-filter).
+The Tier 1 file-priority verdicts from [`@prcompass/pr-triage-filter`](https://github.com/nkwib/pr-triage).
 
 ```json
 "triage": {

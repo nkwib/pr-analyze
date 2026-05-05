@@ -97,7 +97,7 @@ const adapter = new GitHubAdapter({
   repoDir: '/abs/path/to/local-clone',
   octokit,
   owner: 'nkwib',
-  repo: 'prcompass-cli',
+  repo: 'pr-analyze',
   pullNumber: 42
 });
 
