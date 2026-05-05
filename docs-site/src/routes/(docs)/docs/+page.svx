@@ -1,9 +1,9 @@
 ---
-title: '@prcompass/cli · Guide'
+title: '@nkwib/pr-analyze · Guide'
 ---
 
 <svelte:head>
-  <title>@prcompass/cli · Guide</title>
+  <title>@nkwib/pr-analyze · Guide</title>
   <meta
     name="description"
     content="PR Compass CLI — runs the deterministic OSS analysis pipeline against a local git repo or a GitHub PR. Triage + churn + cochange + hotspots + risk."
@@ -20,10 +20,10 @@ ESM-only. Requires **Node 20+** and **`git` available on `$PATH`**.
 
 ```sh
 # Global (provides the `prcompass` binary on PATH)
-npm install -g @prcompass/cli
+npm install -g @nkwib/pr-analyze
 
 # Or run ad-hoc without installing
-npx @prcompass/cli analyze --repo . --diff HEAD~1
+npx @nkwib/pr-analyze analyze --repo . --diff HEAD~1
 ```
 
 The package is `private: true` in the source tree — when published, install via the public registry name once it ships.
@@ -89,7 +89,7 @@ prcompass analyze --repo /path/to/repo --diff main..HEAD
 Programmatic only — there is no `--github` flag. Use it when you have a local clone *and* want to enrich the result with PR metadata (number, title, author). You provide the Octokit client; the adapter never instantiates one for you.
 
 ```ts
-import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
+import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@nkwib/pr-analyze';
 import { Octokit } from '@octokit/rest';
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });

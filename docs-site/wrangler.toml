@@ -1,7 +1,7 @@
 # Cloudflare Workers + Static Assets configuration.
 # Deployed via `wrangler deploy` after `pnpm build` produces ./build.
 
-name = "prcompass-cli"
+name = "pr-analyze"
 compatibility_date = "2026-05-04"
 
 [assets]

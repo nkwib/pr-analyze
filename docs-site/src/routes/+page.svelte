@@ -1,5 +1,5 @@
 <svelte:head>
-  <title>@prcompass/cli — deterministic git-diff analysis on the command line</title>
+  <title>@nkwib/pr-analyze — deterministic git-diff analysis on the command line</title>
   <meta
     name="description"
     content="Run the deterministic OSS analysis pipeline over a local git diff or a GitHub PR. Triage + churn + cochange + hotspots + risk in one command."
@@ -11,14 +11,14 @@
     <div class="hero-copy">
       <span class="badge">
         <span class="dot" aria-hidden="true"></span>
-        v0.1 · Apache-2.0 · Node 20+ · git on $PATH
+        v0.1 · MIT · Node 20+ · git on $PATH
       </span>
       <h1>
         One command.<br />
         <span class="accent">Every</span> deterministic signal in your&nbsp;diff.
       </h1>
       <p class="lede">
-        <strong>@prcompass/cli</strong> runs the PR Compass deterministic
+        <strong>@nkwib/pr-analyze</strong> runs the PR Compass deterministic
         engine — triage, churn, co-change, hotspots, risk — over any git
         range. JSON to <code>stdout</code>, or
         <code>--format human</code> for a quick terminal summary.
@@ -29,7 +29,7 @@
         <a class="btn ghost" href="/commands">Command reference</a>
       </div>
 
-      <pre class="install"><span class="prompt">$</span> npm install -g @prcompass/cli</pre>
+      <pre class="install"><span class="prompt">$</span> npm install -g @nkwib/pr-analyze</pre>
     </div>
 
     <aside class="demo">
