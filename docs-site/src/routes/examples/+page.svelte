@@ -1,8 +1,8 @@
 <svelte:head>
-  <title>@prcompass/cli — examples</title>
+  <title>@nkwib/pr-analyze — examples</title>
   <meta
     name="description"
-    content="jq recipes, GitHub Actions, CI gates, and programmatic integrations using @prcompass/cli."
+    content="jq recipes, GitHub Actions, CI gates, and programmatic integrations using @nkwib/pr-analyze."
   />
 </svelte:head>
 
@@ -92,7 +92,7 @@ jobs:
 
       - name: Run analysis
         run: |
-          npx --yes @prcompass/cli analyze \\
+          npx --yes @nkwib/pr-analyze analyze \\
             --repo . \\
             --diff origin/main..HEAD \\
             > analysis.json
@@ -133,7 +133,7 @@ jobs:
       own Octokit so auth and rate-limits stay under your control.
     </p>
     <pre class="code-block language-typescript" data-lang="typescript"><code>{`// scripts/analyze-pr.ts
-import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
+import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@nkwib/pr-analyze';
 import { Octokit } from '@octokit/rest';
 import { resolve } from 'node:path';
 

@@ -1,9 +1,9 @@
 ---
-title: '@prcompass/cli · Commands'
+title: '@nkwib/pr-analyze · Commands'
 ---
 
 <svelte:head>
-  <title>@prcompass/cli · Commands</title>
+  <title>@nkwib/pr-analyze · Commands</title>
   <meta
     name="description"
     content="Complete command reference for the prcompass CLI: analyze, every flag, every default."
@@ -73,8 +73,8 @@ Behind the scenes, `analyze` does:
 
 1. Resolves `--diff` into `(baseSha, headSha)` via `git rev-parse`.
 2. Calls the configured adapter's `collect()` method to produce an `AnalyzeContext` (commits + diff + optional PR metadata).
-3. Runs the deterministic engine from `@prcompass/core` (mining → churn → cochange → hotspots → risk).
-4. Runs the file triage from `@prcompass/pr-triage-filter` over the diff files.
+3. Runs the deterministic engine from `@nkwib/pr-engine` (mining → churn → cochange → hotspots → risk).
+4. Runs the file triage from `@nkwib/pr-triage` over the diff files.
 5. Serialises the combined output (`CliAnalysisOutput`).
 
 Each step is **deterministic** — same inputs, same bytes out. See the [output schema](/output-schema) for what each step contributes.

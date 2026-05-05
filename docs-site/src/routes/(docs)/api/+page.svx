@@ -1,12 +1,12 @@
 ---
-title: '@prcompass/cli · Programmatic API'
+title: '@nkwib/pr-analyze · Programmatic API'
 ---
 
 <svelte:head>
-  <title>@prcompass/cli · Programmatic API</title>
+  <title>@nkwib/pr-analyze · Programmatic API</title>
   <meta
     name="description"
-    content="Programmatic API for @prcompass/cli — LocalAdapter, GitHubAdapter, runAnalyzeCommand, analyzeCollectedContext, formatHuman, formatJson."
+    content="Programmatic API for @nkwib/pr-analyze — LocalAdapter, GitHubAdapter, runAnalyzeCommand, analyzeCollectedContext, formatHuman, formatJson."
   />
 </svelte:head>
 
@@ -27,7 +27,7 @@ import {
   type LocalAdapterOpts,
   type GitHubClientLike,
   type JsonFormatOpts
-} from '@prcompass/cli';
+} from '@nkwib/pr-analyze';
 ```
 
 ## Adapters
@@ -170,12 +170,12 @@ interface CliAnalysisOutput extends AnalysisOutput {
 }
 ```
 
-Extends [`AnalysisOutput`](https://github.com/nkwib/pr-engine) from `@prcompass/core` with the triage layer and adapter identity. The shape is documented in detail at [/output-schema](/output-schema).
+Extends [`AnalysisOutput`](https://github.com/nkwib/pr-engine) from `@nkwib/pr-engine` with the triage layer and adapter identity. The shape is documented in detail at [/output-schema](/output-schema).
 
 ## Putting it together
 
 ```ts
-import { LocalAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
+import { LocalAdapter, runAnalyzeCommand, formatJson } from '@nkwib/pr-analyze';
 
 async function main() {
   const adapter = new LocalAdapter({
