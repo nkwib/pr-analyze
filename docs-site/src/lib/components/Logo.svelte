@@ -15,7 +15,7 @@
     <path d="M9 12 L13 16 L9 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
     <line x1="15" y1="20" x2="23" y2="20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
   </svg>
-  <span class="wordmark">prcompass</span>
+  <span class="wordmark">pr-analyze</span>
 </span>
 
 <style>

@@ -145,7 +145,7 @@ const adapter = new GitHubAdapter({
   repoDir: REPO_DIR,
   octokit: new Octokit({ auth: process.env.GITHUB_TOKEN }),
   owner: 'nkwib',
-  repo: 'prcompass-cli',
+  repo: 'pr-analyze',
   pullNumber: PULL
 });
 
@@ -185,7 +185,7 @@ jq -c '{sha: .head.sha, riskCount: (.risk.byFile | length)}' main-walk.ndjson
       built binary against the workspace itself. Useful to sanity-check
       changes to <code>analyze.ts</code>, the formatters, or the adapters.
     </p>
-    <pre class="code-block language-bash" data-lang="bash"><code>{`# From the prcompass-cli repo
+    <pre class="code-block language-bash" data-lang="bash"><code>{`# From the pr-analyze repo
 npm run build
 npm run smoke
 # → node dist/cli.js analyze --local --repo ../.. --diff HEAD~1

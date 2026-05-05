@@ -90,7 +90,7 @@ const adapter = new GitHubAdapter({
   repoDir: '/abs/path/to/local-clone',
   octokit: new Octokit({ auth: process.env.GITHUB_TOKEN }),
   owner: 'nkwib',
-  repo: 'prcompass-cli',
+  repo: 'pr-analyze',
   pullNumber: 42
 });
 ```
@@ -170,7 +170,7 @@ interface CliAnalysisOutput extends AnalysisOutput {
 }
 ```
 
-Extends [`AnalysisOutput`](https://github.com/nkwib/prcompass-core) from `@prcompass/core` with the triage layer and adapter identity. The shape is documented in detail at [/output-schema](/output-schema).
+Extends [`AnalysisOutput`](https://github.com/nkwib/pr-engine) from `@prcompass/core` with the triage layer and adapter identity. The shape is documented in detail at [/output-schema](/output-schema).
 
 ## Putting it together
 
