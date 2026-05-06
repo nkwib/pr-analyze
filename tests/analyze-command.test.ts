@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { analyzeCollectedContext, runAnalyzeCommand } from "../src/commands/analyze.js";
 import { formatHuman } from "../src/format/human.js";
 import { formatJson } from "../src/format/json.js";
-import type { AnalyzeContext, CommitRecord, ProviderAdapter } from "@prcompass/core";
+import type {
+  AnalyzeContext,
+  CommitRecord,
+  ProviderAdapter,
+} from "../src/vendor/core/index.js";
 
 function commit(o: Partial<CommitRecord>): CommitRecord {
   return {

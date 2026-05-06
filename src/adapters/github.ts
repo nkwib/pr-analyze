@@ -2,7 +2,7 @@ import type {
   AnalyzeContext,
   AnalyzeContextPR,
   ProviderAdapter,
-} from "@prcompass/core";
+} from "../vendor/core/index.js";
 
 import { LocalAdapter, type LocalAdapterOpts } from "./local.js";
 
@@ -77,8 +77,12 @@ export class GitHubAdapter implements ProviderAdapter {
     const local = new LocalAdapter({
       repoDir: this.opts.repoDir,
       diff: `${pr.base.sha}..${pr.head.sha}`,
-      maxCommits: this.opts.maxCommits,
-      gitRunner: this.opts.gitRunner,
+      ...(this.opts.maxCommits !== undefined
+        ? { maxCommits: this.opts.maxCommits }
+        : {}),
+      ...(this.opts.gitRunner !== undefined
+        ? { gitRunner: this.opts.gitRunner }
+        : {}),
     });
     const ctx = await local.collect();
 
