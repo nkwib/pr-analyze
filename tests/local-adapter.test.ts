@@ -56,8 +56,15 @@ describe("LocalAdapter — collect()", () => {
         "log --max-count=5000 --name-only --format=\x1eCOMMIT %H",
         "\x1eCOMMIT c1\nsrc/a.ts\n\x1eCOMMIT c2\nsrc/b.ts\nsrc/a.ts\n",
       ],
-      ["diff --name-status base-sha..head-sha", "M\tsrc/a.ts\nA\tsrc/b.ts\n"],
-      ["diff --numstat base-sha..head-sha", "5\t2\tsrc/a.ts\n10\t0\tsrc/b.ts\n"],
+      [
+        "diff --name-status -z base-sha..head-sha",
+        "M\x00src/a.ts\x00A\x00src/b.ts\x00",
+      ],
+      [
+        "diff --numstat -z base-sha..head-sha",
+        "5\t2\tsrc/a.ts\x0010\t0\tsrc/b.ts\x00",
+      ],
+      ["diff base-sha..head-sha", ""],
     ]);
 
     const adapter = new LocalAdapter({
@@ -96,8 +103,9 @@ describe("LocalAdapter — collect()", () => {
       ["rev-parse HEAD", "head"],
       ["log --max-count=5000 --format=%x1e%H%x1f%P%x1f%aN%x1f%aI%x1f%B", ""],
       ["log --max-count=5000 --name-only --format=\x1eCOMMIT %H", ""],
-      ["diff --name-status base..head", ""],
-      ["diff --numstat base..head", ""],
+      ["diff --name-status -z base..head", ""],
+      ["diff --numstat -z base..head", ""],
+      ["diff base..head", ""],
     ]);
     const adapter = new LocalAdapter({
       repoDir: "/fake",
@@ -115,8 +123,12 @@ describe("LocalAdapter — collect()", () => {
       ["rev-parse feature", "H"],
       ["log --max-count=5000 --format=%x1e%H%x1f%P%x1f%aN%x1f%aI%x1f%B", ""],
       ["log --max-count=5000 --name-only --format=\x1eCOMMIT %H", ""],
-      ["diff --name-status B..H", "R100\told.ts\tnew.ts\n"],
-      ["diff --numstat B..H", "0\t0\tnew.ts\n"],
+      [
+        "diff --name-status -z B..H",
+        "R100\x00old.ts\x00new.ts\x00",
+      ],
+      ["diff --numstat -z B..H", "0\t0\tnew.ts\x00"],
+      ["diff B..H", ""],
     ]);
     const adapter = new LocalAdapter({
       repoDir: "/fake",

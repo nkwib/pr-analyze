@@ -3,8 +3,11 @@ import {
   type AnalysisOutput,
   type AnalyzeContext,
   type ProviderAdapter,
-} from "@prcompass/core";
-import { classifyPrFiles, type ClassifyResult } from "@prcompass/pr-triage-filter";
+} from "../vendor/core/index.js";
+import {
+  classifyPrFiles,
+  type ClassifyResult,
+} from "../vendor/pr-triage-filter/index.js";
 
 /**
  * Full CLI analysis output: the deterministic core analysis plus the

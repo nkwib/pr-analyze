@@ -1,5 +1,5 @@
 import type { CliAnalysisOutput } from "../commands/analyze.js";
-import type { FileRiskReport } from "@prcompass/core";
+import type { FileRiskReport } from "../vendor/core/index.js";
 
 const TOP_RISK_LIMIT = 10;
 

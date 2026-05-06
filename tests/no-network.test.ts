@@ -54,8 +54,9 @@ describe("LocalAdapter — no-network invariant", () => {
           "log --max-count=5000 --name-only --format=\x1eCOMMIT %H",
           "\x1eCOMMIT c1\nsrc/a.ts\n",
         ],
-        ["diff --name-status B..H", "M\tsrc/a.ts\n"],
-        ["diff --numstat B..H", "1\t0\tsrc/a.ts\n"],
+        ["diff --name-status -z B..H", "M\x00src/a.ts\x00"],
+        ["diff --numstat -z B..H", "1\t0\tsrc/a.ts\x00"],
+        ["diff B..H", ""],
       ]);
 
       const adapter = new LocalAdapter({

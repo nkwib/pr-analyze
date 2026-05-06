@@ -69,8 +69,9 @@ describe("GitHubAdapter — collect()", () => {
         "log --max-count=5000 --name-only --format=\x1eCOMMIT %H",
         "\x1eCOMMIT c1\nsrc/x.ts\n",
       ],
-      ["diff --name-status base-sha..head-sha", "M\tsrc/x.ts\n"],
-      ["diff --numstat base-sha..head-sha", "1\t0\tsrc/x.ts\n"],
+      ["diff --name-status -z base-sha..head-sha", "M\x00src/x.ts\x00"],
+      ["diff --numstat -z base-sha..head-sha", "1\t0\tsrc/x.ts\x00"],
+      ["diff base-sha..head-sha", ""],
     ]);
 
     const adapter = new GitHubAdapter({
@@ -108,8 +109,9 @@ describe("GitHubAdapter — collect()", () => {
       ["rev-parse H", "H"],
       ["log --max-count=5000 --format=%x1e%H%x1f%P%x1f%aN%x1f%aI%x1f%B", ""],
       ["log --max-count=5000 --name-only --format=\x1eCOMMIT %H", ""],
-      ["diff --name-status B..H", ""],
-      ["diff --numstat B..H", ""],
+      ["diff --name-status -z B..H", ""],
+      ["diff --numstat -z B..H", ""],
+      ["diff B..H", ""],
     ]);
     const adapter = new GitHubAdapter({
       repoDir: "/fake",

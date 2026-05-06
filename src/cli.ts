@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { resolve } from "node:path";
+import { existsSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { Command, Option } from "commander";
 
 import { LocalAdapter } from "./adapters/local.js";
@@ -9,7 +10,7 @@ import { formatJson } from "./format/json.js";
 
 interface AnalyzeOptions {
   readonly local?: boolean;
-  readonly repo: string;
+  readonly repo?: string;
   readonly diff: string;
   readonly format: "json" | "human";
   readonly pretty?: boolean;
@@ -30,7 +31,7 @@ program
   .description(
     "Analyse a git diff. Outputs JSON to stdout by default; pass --format human for a terminal-friendly summary.",
   )
-  .requiredOption("--repo <path>", "path to a local git repository", process.cwd())
+  .option("--repo <path>", "path to a local git repository", process.cwd())
   .requiredOption(
     "--diff <range>",
     'git diff range (e.g. "HEAD~1..HEAD", "main..feature", or a single ref interpreted as "<ref>..HEAD")',
@@ -44,11 +45,13 @@ program
   .option("--pretty", "pretty-print JSON output (no effect with --format human)")
   .option("--max-commits <n>", "cap commit history walk", "5000")
   .action(async (rawOpts: AnalyzeOptions) => {
-    const repo = resolve(rawOpts.repo);
+    const repo = resolve(rawOpts.repo ?? process.cwd());
+    assertGitRepo(repo);
+    const maxCommits = parseMaxCommits(rawOpts.maxCommits);
     const adapter = new LocalAdapter({
       repoDir: repo,
       diff: rawOpts.diff,
-      maxCommits: Number(rawOpts.maxCommits ?? "5000"),
+      maxCommits,
     });
     const output = await runAnalyzeCommand(adapter);
     if (rawOpts.format === "human") {
@@ -59,6 +62,46 @@ program
       process.stdout.write("\n");
     }
   });
+
+function assertGitRepo(path: string): void {
+  if (!existsSync(path)) {
+    throw new Error(`--repo path does not exist: ${path}`);
+  }
+  let stat;
+  try {
+    stat = statSync(path);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`--repo path is not accessible (${msg}): ${path}`);
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`--repo path is not a directory: ${path}`);
+  }
+  // A git working tree has a `.git` directory; a bare repo / submodule
+  // can have a `.git` file pointing elsewhere. Accept either.
+  const dotGit = join(path, ".git");
+  if (!existsSync(dotGit)) {
+    throw new Error(
+      `--repo path is not a git repository (no .git/ directory): ${path}`,
+    );
+  }
+}
+
+function parseMaxCommits(raw: string | undefined): number {
+  const input = raw ?? "5000";
+  if (!/^\d+$/.test(input)) {
+    throw new Error(
+      `--max-commits must be a non-negative integer, got: ${input}`,
+    );
+  }
+  const n = Number(input);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1) {
+    throw new Error(
+      `--max-commits must be a positive integer, got: ${input}`,
+    );
+  }
+  return n;
+}
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   const msg = err instanceof Error ? err.message : String(err);

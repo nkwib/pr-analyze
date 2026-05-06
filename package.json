@@ -1,9 +1,8 @@
 {
   "name": "@prcompass/cli",
   "version": "0.1.0",
-  "description": "PR Compass CLI — runs the deterministic OSS analysis pipeline against a local git repo or a GitHub PR.",
+  "description": "PR Compass CLI — runs the deterministic OSS analysis pipeline against a local git repo.",
   "license": "Apache-2.0",
-  "private": true,
   "type": "module",
   "bin": {
     "prcompass": "dist/cli.js"
@@ -32,19 +31,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/nkwib/prcompass-cli.git"
+    "url": "https://github.com/nkwib/pr-analyze.git"
   },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src tests",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "smoke": "node dist/cli.js analyze --local --repo ../.. --diff HEAD~1"
+    "smoke": "node dist/cli.js analyze --repo . --diff HEAD~1"
   },
   "dependencies": {
-    "@prcompass/core": "workspace:*",
-    "@prcompass/pr-triage-filter": "workspace:*",
     "commander": "^12.1.0"
   },
   "devDependencies": {

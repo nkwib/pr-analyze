@@ -1,6 +1,6 @@
 # @prcompass/cli
 
-The PR Compass command-line interface. Runs the deterministic OSS analysis pipeline over a local git diff or a GitHub PR. Output is JSON by default; `--format human` for a terminal summary.
+The PR Compass command-line interface. Runs the deterministic OSS analysis pipeline over a local git diff. Output is JSON by default; `--format human` for a terminal summary.
 
 ## Install
 
@@ -36,7 +36,7 @@ A JSON object containing:
 
 - `version` — `ANALYSIS_SCHEMA_VERSION` from `@prcompass/core`.
 - `head.sha` / `head.baseSha` — resolved SHAs for the diff range.
-- `pr` — PR metadata when a GitHub adapter was used; `null` for local mode.
+- `pr` — PR metadata when a GitHub adapter is used programmatically; `null` for the CLI's local mode.
 - `diff.files` — per-file status, additions, deletions, and unified-diff patch.
 - `mining` — bug-fix vs total commit stats over the repo history.
 - `hotspots` — Bayesian-smoothed bug-fix density per file.
@@ -49,7 +49,7 @@ Every numeric claim in `risk` is grounded by real commit SHAs or is `null`. The 
 
 ## Adapters
 
-`LocalAdapter` (default) shells out to `git` against a local repository. `GitHubAdapter` (programmatic API) enriches that with PR metadata via Octokit; you provide your own client and the local clone.
+The CLI uses `LocalAdapter`, which shells out to `git` against a local repository — no network I/O. A `GitHubAdapter` is also exported from the programmatic API for callers who want to enrich a local diff with PR metadata via Octokit; the CLI does not yet expose it as a flag.
 
 ## License
 
