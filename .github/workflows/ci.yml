@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history needed for `npm run smoke` (diffs HEAD~1)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke (built CLI)
+        run: npm run smoke
+
+      - name: Smoke (dist import)
+        run: |
+          node -e "import('./dist/index.js').then((m) => {
+            const expected = ['GitHubAdapter', 'LocalAdapter', 'runAnalyzeCommand'];
+            const missing = expected.filter((k) => typeof m[k] === 'undefined');
+            if (missing.length > 0) {
+              console.error('Missing exports from dist/index.js:', missing.join(', '));
+              process.exit(1);
+            }
+            console.log('dist exports OK:', expected.join(', '));
+          }).catch((err) => {
+            console.error(err);
+            process.exit(1);
+          })"
+
+  docs:
+    name: Docs site build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs-site
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: docs-site/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
