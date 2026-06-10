@@ -1,9 +1,9 @@
 ---
-title: '@nkwib/pr-analyze · Output schema'
+title: '@prcompass/cli · Output schema'
 ---
 
 <svelte:head>
-  <title>@nkwib/pr-analyze · Output schema</title>
+  <title>@prcompass/cli · Output schema</title>
   <meta
     name="description"
     content="Stable JSON output of `prcompass analyze`. version, head, pr, diff, mining, hotspots, churn, cochange, risk, triage, adapter."
@@ -12,31 +12,31 @@ title: '@nkwib/pr-analyze · Output schema'
 
 # Output schema
 
-`prcompass analyze` writes one JSON document to stdout. The top-level keys are versioned by `version` (== `ANALYSIS_SCHEMA_VERSION` from `@nkwib/pr-engine`) — pin to the major when you integrate.
+`prcompass analyze` writes one JSON document to stdout. The top-level keys are versioned by `version` (== `ANALYSIS_SCHEMA_VERSION` from `@prcompass/core`) — pin to the major when you integrate.
 
 ```ts
 interface CliAnalysisOutput {
   version: string;          // e.g. "0.1.0"
   head: { sha: string; baseSha: string };
+  diff: { fileCount: number };
   pr: PrMetadata | null;    // null in --local mode
-  diff: { fileCount: number; files: DiffFile[] };
-  mining: MineStats;
-  hotspots: HotspotsReport;
-  churn: ChurnReport;
-  cochange: CochangeReport;
-  risk: RiskReport;
+  mining: { totalCommits: number; bugFixCommits: number };
+  hotspots: Hotspot[];
+  churn: { files: string[]; byFile: Record<string, FileChurnReport> };
+  cochange: { edges: CoChangeEdge[] };
+  risk: { files: string[]; byFile: Record<string, FileRiskReport> };
   triage: { verdicts: FileVerdict[] };
   adapter: { name: string };  // "local" | "github"
 }
 ```
 
-Every numeric claim in `risk` is **grounded** by real commit SHAs in `groundedIn` — or it is `null`. The CLI never fabricates a `0` to mean "no signal".
+Every numeric claim in `risk` is **grounded** by real commit SHAs in `defectDensity.groundedIn` — and the composite `score` is `null` when there is no bug-fix history to ground it in. The CLI never fabricates a `0` to mean "no signal".
 
 ## Top-level keys
 
 ### `version`
 
-The `ANALYSIS_SCHEMA_VERSION` constant from `@nkwib/pr-engine`. Independent of the package's npm version, so you can pin parsers without pinning the binary.
+The `ANALYSIS_SCHEMA_VERSION` constant from `@prcompass/core`. Independent of the package's npm version, so you can pin parsers without pinning the binary.
 
 ```json
 "version": "0.1.0"
@@ -53,40 +53,32 @@ The resolved SHAs at the endpoints of `--diff`. Useful for caching and for cross
 }
 ```
 
+### `diff`
+
+A header-style summary of the change set. `fileCount` is the number of files touched in `--diff`.
+
+```json
+"diff": {
+  "fileCount": 8
+}
+```
+
+The per-file change set is not duplicated here — the triage pass (below) reports one verdict per file, and `churn` / `risk` carry the per-file metrics. The triage pass maps the diff statuses `added | modified | removed | renamed | copied` onto `@prcompass/pr-triage-filter`'s vocabulary (`removed → deleted`, `copied → renamed`).
+
 ### `pr`
 
 PR metadata — present only when a `GitHubAdapter` was used; otherwise `null`. Local-mode runs never produce a non-null `pr`.
 
 ```json
 "pr": {
-  "number": 42,
   "title": "Migrate session middleware to JWE",
-  "author": "alice",
-  "createdAt": "2026-04-01T12:00:00Z"
+  "body": "Replaces the cookie session store with JWE tokens.",
+  "number": 42,
+  "authorLogin": "alice"
 }
 ```
 
-### `diff`
-
-The set of files touched in `--diff`. `fileCount` is `files.length` — duplicated for cheap header-style summaries that don't want to traverse the array.
-
-```json
-"diff": {
-  "fileCount": 8,
-  "files": [
-    {
-      "path": "src/billing/checkout.ts",
-      "previousPath": null,
-      "status": "modified",
-      "additions": 30,
-      "deletions": 5,
-      "patch": "@@ -10,3 +10,4 @@\n ..."
-    }
-  ]
-}
-```
-
-`status` is one of `added | modified | removed | renamed | copied`. The triage pass below maps `removed → deleted` and `copied → renamed` to match `@nkwib/pr-triage`'s vocabulary.
+`body` and `authorLogin` are `string | null`.
 
 ### `mining`
 
@@ -95,45 +87,46 @@ Bug-fix vs total commit stats over the walked history.
 ```json
 "mining": {
   "totalCommits": 5000,
-  "bugFixCommits": 904,
-  "bugFixRate": 0.1808
+  "bugFixCommits": 904
 }
 ```
 
 ### `hotspots`
 
-Bayesian-smoothed bug-fix density per file. The report is a map from path → `{score, totalCommits, bugFixCommits, groundedIn}`.
+Bayesian-smoothed bug-fix density per file, sorted descending. An **array** of `{ file, density, bugFixCommits }`.
 
 ```json
-"hotspots": {
-  "byFile": {
-    "src/billing/checkout.ts": {
-      "score": 0.74,
-      "totalCommits": 38,
-      "bugFixCommits": 12,
-      "groundedIn": ["abc1234", "def5678", "..."]
-    }
+"hotspots": [
+  {
+    "file": "src/billing/checkout.ts",
+    "density": 0.74,
+    "bugFixCommits": 12
   }
-}
+]
 ```
+
+`density` pulls each per-file rate toward the repo-wide bug-fix rate (Bayesian smoothing) so files with very few touches don't dominate the ranking.
 
 ### `churn`
 
-Per-file commit count, bug-fix count, defect density, first/last touch.
+Per-file commit count, bug-fix count, and first/last touch timestamps. `files` is the sorted list of paths; `byFile` maps each path to its report.
 
 ```json
 "churn": {
+  "files": ["src/billing/checkout.ts"],
   "byFile": {
     "src/billing/checkout.ts": {
-      "commitCount": 38,
-      "bugFixCount": 12,
-      "defectDensity": 0.316,
-      "firstTouched": "2025-09-12T09:14:00Z",
-      "lastTouched": "2026-04-22T17:03:00Z"
+      "file": "src/billing/checkout.ts",
+      "commits": 38,
+      "bugFixCommits": 12,
+      "firstTouchedAt": "2025-09-12T09:14:00+00:00",
+      "lastTouchedAt": "2026-04-22T17:03:00+00:00"
     }
   }
 }
 ```
+
+`firstTouchedAt` / `lastTouchedAt` are `string | null` (ISO-8601, as emitted by `git log %aI`).
 
 ### `cochange`
 
@@ -154,26 +147,30 @@ File × file co-modification graph. Edges carry both raw counts and a Jaccard-st
 
 ### `risk`
 
-Per-file combined risk score with `groundedIn` SHA pointers and caveats.
+Per-file composite risk. `files` is the sorted list of paths; `byFile` maps each path to its report.
 
 ```json
 "risk": {
+  "files": ["src/billing/checkout.ts"],
   "byFile": {
     "src/billing/checkout.ts": {
+      "file": "src/billing/checkout.ts",
       "score": 0.78,
-      "tier": "high",
-      "groundedIn": ["abc1234", "def5678"],
-      "caveats": ["short history (38 commits)"]
+      "defectDensity": {
+        "value": 0.316,
+        "groundedIn": ["abc1234", "def5678"]
+      },
+      "caveats": ["no-history"]
     }
   }
 }
 ```
 
-`score` is in `[0, 1]`. `tier` is one of `low | medium | high`. `score === null` means "no signal" — never confuse with `0`.
+`score` is a composite of smoothed defect density and `log1p(commitCount)`. It is `null` when the repo has no bug-fix history (in which case `caveats` includes `"no-bugfix-history"`); `score === null` means "no signal" — never confuse it with `0`. `defectDensity.value` is the Bayesian-smoothed bug-fix rate, and `defectDensity.groundedIn` lists the bug-fix commit SHAs that touched the file — the evidence behind the number.
 
 ### `triage`
 
-The Tier 1 file-priority verdicts from [`@nkwib/pr-triage`](https://github.com/nkwib/pr-triage).
+The Tier 1 file-priority verdicts from [`@prcompass/pr-triage-filter`](https://github.com/nkwib/pr-analyze). Each verdict is `{ path, verdict, reason }`.
 
 ```json
 "triage": {
@@ -181,20 +178,18 @@ The Tier 1 file-priority verdicts from [`@nkwib/pr-triage`](https://github.com/n
     {
       "path": "pnpm-lock.yaml",
       "verdict": "skip",
-      "ruleId": "lockfile",
-      "reason": "Package lockfile — content is auto-generated"
+      "reason": "lockfile or generated artifact (pnpm-lock.yaml)"
     },
     {
       "path": "src/billing/checkout.ts",
       "verdict": "review-candidate",
-      "ruleId": "default",
-      "reason": "Production source code outside tests, docs, and config paths."
+      "reason": "source code change"
     }
   ]
 }
 ```
 
-`ruleId` is part of the public contract — safe to pattern-match.
+`verdict` is one of `skip | skim | review-candidate`. `reason` is a human-readable explanation — it is not a stable identifier, so do not pattern-match on it; match on `verdict` instead.
 
 ### `adapter`
 
@@ -209,6 +204,6 @@ Identifies which adapter produced the context. Useful in logs and replay scenari
 - The set of top-level keys is **stable** within a major version of `version`.
 - New top-level keys may be added in minor versions.
 - Removing or renaming a key is a major-version break.
-- Numeric ranges (`score ∈ [0, 1]`, `verdict ∈ skip|skim|review-candidate`) are part of the contract.
+- The `verdict` enum (`skip | skim | review-candidate`) is part of the contract.
 
 The schema is engineered to be JSON-clean — no `Map`, no `Date`, no functions. `JSON.parse(formatJson(output))` always round-trips losslessly.

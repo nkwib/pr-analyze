@@ -1,5 +1,5 @@
 <svelte:head>
-  <title>@nkwib/pr-analyze — deterministic git-diff analysis on the command line</title>
+  <title>@prcompass/cli — deterministic git-diff analysis on the command line</title>
   <meta
     name="description"
     content="Run the deterministic OSS analysis pipeline over a local git diff or a GitHub PR. Triage + churn + cochange + hotspots + risk in one command."
@@ -18,7 +18,7 @@
         <span class="accent">Every</span> deterministic signal in your&nbsp;diff.
       </h1>
       <p class="lede">
-        <strong>@nkwib/pr-analyze</strong> runs the PR Compass deterministic
+        <strong>@prcompass/cli</strong> runs the PR Compass deterministic
         engine — triage, churn, co-change, hotspots, risk — over any git
         range. JSON to <code>stdout</code>, or
         <code>--format human</code> for a quick terminal summary.
@@ -29,7 +29,7 @@
         <a class="btn ghost" href="/commands">Command reference</a>
       </div>
 
-      <pre class="install"><span class="prompt">$</span> npm install -g @nkwib/pr-analyze</pre>
+      <pre class="install"><span class="prompt">$</span> npm install -g @prcompass/cli</pre>
     </div>
 
     <aside class="demo">
@@ -46,8 +46,8 @@
   <span class="kw">triage</span>     8 files · 3 skip · 2 skim · 3 review-candidate
   <span class="kw">hotspots</span>   src/billing/checkout.ts (0.74) · src/auth/session.ts (0.61)
   <span class="kw">cochange</span>   src/billing/checkout.ts ↔ src/billing/invoice.ts (J=0.82, 18×)
-  <span class="kw">risk</span>       src/billing/checkout.ts → 0.78 (high)
-                grounded in 12 commits over 9 months
+  <span class="kw">risk</span>       src/billing/checkout.ts → score 0.78
+                grounded in 12 bug-fix commits over 9 months
 
 <span class="cmt">→ next: pipe JSON into your tier-2 reviewer</span>
 <span class="prompt">$</span> <span class="fn">prcompass</span> analyze <span class="opt">--repo</span> . <span class="opt">--diff</span> HEAD~1 | <span class="fn">jq</span> <span class="str">.risk.byFile</span>
@@ -165,8 +165,8 @@
 &lbrace;
   <span class="prop">"version"</span>:   <span class="str">"0.1.0"</span>,
   <span class="prop">"head"</span>:      &lbrace; <span class="prop">"sha"</span>: <span class="str">"def…"</span>, <span class="prop">"baseSha"</span>: <span class="str">"abc…"</span> &rbrace;,
+  <span class="prop">"diff"</span>:      &lbrace; <span class="prop">"fileCount"</span>: <span class="num">8</span> &rbrace;,
   <span class="prop">"pr"</span>:        <span class="kw">null</span>,
-  <span class="prop">"diff"</span>:      &lbrace; <span class="prop">"fileCount"</span>: <span class="num">8</span>, <span class="prop">"files"</span>: [...] &rbrace;,
   <span class="prop">"mining"</span>:    &lbrace; ... &rbrace;,
   <span class="prop">"hotspots"</span>:  &lbrace; ... &rbrace;,
   <span class="prop">"churn"</span>:     &lbrace; ... &rbrace;,

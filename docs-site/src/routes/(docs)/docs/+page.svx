@@ -1,9 +1,9 @@
 ---
-title: '@nkwib/pr-analyze · Guide'
+title: '@prcompass/cli · Guide'
 ---
 
 <svelte:head>
-  <title>@nkwib/pr-analyze · Guide</title>
+  <title>@prcompass/cli · Guide</title>
   <meta
     name="description"
     content="PR Compass CLI — runs the deterministic OSS analysis pipeline against a local git repo or a GitHub PR. Triage + churn + cochange + hotspots + risk."
@@ -20,13 +20,15 @@ ESM-only. Requires **Node 20+** and **`git` available on `$PATH`**.
 
 ```sh
 # Global (provides the `prcompass` binary on PATH)
-npm install -g @nkwib/pr-analyze
+npm install -g @prcompass/cli
+prcompass analyze --repo . --diff HEAD~1
 
-# Or run ad-hoc without installing
-npx @nkwib/pr-analyze analyze --repo . --diff HEAD~1
+# Or run ad-hoc without installing — the package name is @prcompass/cli,
+# the binary it exposes is `prcompass`
+npx -p @prcompass/cli prcompass analyze --repo . --diff HEAD~1
 ```
 
-The package is `private: true` in the source tree — when published, install via the public registry name once it ships.
+The package is published to npm as [`@prcompass/cli`](https://www.npmjs.com/package/@prcompass/cli) and exposes the `prcompass` binary.
 
 <h2 id="quick-start">Quick start</h2>
 
@@ -89,16 +91,15 @@ prcompass analyze --repo /path/to/repo --diff main..HEAD
 Programmatic only — there is no `--github` flag. Use it when you have a local clone *and* want to enrich the result with PR metadata (number, title, author). You provide the Octokit client; the adapter never instantiates one for you.
 
 ```ts
-import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@nkwib/pr-analyze';
+import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
 import { Octokit } from '@octokit/rest';
 
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 const adapter = new GitHubAdapter({
   repoDir: '/abs/path/to/local-clone',
-  octokit,
   owner: 'nkwib',
   repo: 'pr-analyze',
-  pullNumber: 42
+  prNumber: 42,
+  client: new Octokit({ auth: process.env.GITHUB_TOKEN })
 });
 
 const output = await runAnalyzeCommand(adapter);

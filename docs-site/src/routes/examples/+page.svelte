@@ -1,8 +1,8 @@
 <svelte:head>
-  <title>@nkwib/pr-analyze — examples</title>
+  <title>@prcompass/cli — examples</title>
   <meta
     name="description"
-    content="jq recipes, GitHub Actions, CI gates, and programmatic integrations using @nkwib/pr-analyze."
+    content="jq recipes, GitHub Actions, CI gates, and programmatic integrations using @prcompass/cli."
   />
 </svelte:head>
 
@@ -30,15 +30,16 @@
 prcompass analyze --repo . --diff HEAD~1 \\
   | jq '.triage.verdicts | group_by(.verdict) | map({verdict: .[0].verdict, n: length})'
 
-# Top 5 risk-scored files
+# Top 5 risk-scored files (score is null when there is no bug-fix signal)
 prcompass analyze --repo . --diff main..HEAD \\
   | jq '.risk.byFile
         | to_entries
+        | map(select(.value.score != null))
         | sort_by(-.value.score)
         | .[0:5]
-        | map({path: .key, score: .value.score, tier: .value.tier})'
+        | map({path: .key, score: .value.score})'
 
-# Files that are both review-candidate AND high-risk — the sharp end of the cone
+# Files that are both review-candidate AND high-risk (example threshold: score >= 0.7)
 prcompass analyze --repo . --diff main..HEAD \\
   | jq '
     [.triage.verdicts[]
@@ -46,7 +47,7 @@ prcompass analyze --repo . --diff main..HEAD \\
       | .path] as $review
     | .risk.byFile
     | to_entries
-    | map(select(.value.tier == "high" and (.key | IN($review[]))))
+    | map(select(.value.score != null and .value.score >= 0.7 and (.key | IN($review[]))))
     | map(.key)
   '
 
@@ -54,8 +55,8 @@ prcompass analyze --repo . --diff main..HEAD \\
 prcompass analyze --repo . --diff HEAD~1 \\
   | jq '{
       files: .diff.fileCount,
-      hotspot: (.hotspots.byFile | to_entries | sort_by(-.value.score) | .[0]),
-      riskTop: (.risk.byFile  | to_entries | sort_by(-.value.score) | .[0])
+      hotspot: .hotspots[0],
+      riskTop: (.risk.byFile  | to_entries | map(select(.value.score != null)) | sort_by(-.value.score) | .[0])
     }'
 `}</code></pre>
   </section>
@@ -68,7 +69,9 @@ prcompass analyze --repo . --diff HEAD~1 \\
     <p class="ex-desc">
       The CLI itself never gates on what it found — that is policy. Wrap it
       in a job that turns the JSON into a pass/fail. This action fails the
-      check if any review-candidate file scores in the high-risk tier.
+      check if any review-candidate file scores at or above an example risk
+      threshold (<code>score &gt;= 0.7</code>; pick a threshold that fits your
+      repo).
     </p>
     <pre class="code-block language-yaml" data-lang="yaml"><code>{`# .github/workflows/risk-gate.yml
 name: PR risk gate
@@ -92,7 +95,7 @@ jobs:
 
       - name: Run analysis
         run: |
-          npx --yes @nkwib/pr-analyze analyze \\
+          npx --yes -p @prcompass/cli prcompass analyze \\
             --repo . \\
             --diff origin/main..HEAD \\
             > analysis.json
@@ -105,7 +108,7 @@ jobs:
               | .path] as $review
             | .risk.byFile
             | to_entries
-            | map(select(.value.tier == "high" and (.key | IN($review[]))))
+            | map(select(.value.score != null and .value.score >= 0.7 and (.key | IN($review[]))))
             | length
           ' analysis.json)
 
@@ -133,7 +136,7 @@ jobs:
       own Octokit so auth and rate-limits stay under your control.
     </p>
     <pre class="code-block language-typescript" data-lang="typescript"><code>{`// scripts/analyze-pr.ts
-import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@nkwib/pr-analyze';
+import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
 import { Octokit } from '@octokit/rest';
 import { resolve } from 'node:path';
 
@@ -143,10 +146,10 @@ if (!Number.isFinite(PULL)) throw new Error('usage: analyze-pr <pr-number>');
 
 const adapter = new GitHubAdapter({
   repoDir: REPO_DIR,
-  octokit: new Octokit({ auth: process.env.GITHUB_TOKEN }),
   owner: 'nkwib',
   repo: 'pr-analyze',
-  pullNumber: PULL
+  prNumber: PULL,
+  client: new Octokit({ auth: process.env.GITHUB_TOKEN })
 });
 
 const output = await runAnalyzeCommand(adapter);
@@ -188,7 +191,7 @@ jq -c '{sha: .head.sha, riskCount: (.risk.byFile | length)}' main-walk.ndjson
     <pre class="code-block language-bash" data-lang="bash"><code>{`# From the pr-analyze repo
 npm run build
 npm run smoke
-# → node dist/cli.js analyze --local --repo ../.. --diff HEAD~1
+# → node dist/cli.js analyze --repo . --diff HEAD~1
 `}</code></pre>
   </section>
 

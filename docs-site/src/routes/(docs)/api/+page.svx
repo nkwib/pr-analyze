@@ -1,12 +1,12 @@
 ---
-title: '@nkwib/pr-analyze · Programmatic API'
+title: '@prcompass/cli · Programmatic API'
 ---
 
 <svelte:head>
-  <title>@nkwib/pr-analyze · Programmatic API</title>
+  <title>@prcompass/cli · Programmatic API</title>
   <meta
     name="description"
-    content="Programmatic API for @nkwib/pr-analyze — LocalAdapter, GitHubAdapter, runAnalyzeCommand, analyzeCollectedContext, formatHuman, formatJson."
+    content="Programmatic API for @prcompass/cli — LocalAdapter, GitHubAdapter, runAnalyzeCommand, analyzeCollectedContext, formatHuman, formatJson."
   />
 </svelte:head>
 
@@ -27,7 +27,7 @@ import {
   type LocalAdapterOpts,
   type GitHubClientLike,
   type JsonFormatOpts
-} from '@nkwib/pr-analyze';
+} from '@prcompass/cli';
 ```
 
 ## Adapters
@@ -73,25 +73,26 @@ class GitHubAdapter implements ProviderAdapter {
 }
 
 interface GitHubAdapterOpts {
-  readonly repoDir: string;            // local clone — engine reads from here
-  readonly octokit: GitHubClientLike;  // bring your own Octokit
+  readonly repoDir: string;          // local clone — engine reads from here
   readonly owner: string;
   readonly repo: string;
-  readonly pullNumber: number;
+  readonly prNumber: number;
+  readonly client: GitHubClientLike; // bring your own Octokit-shaped client
+  readonly maxCommits?: number;      // forwarded to LocalAdapter
 }
 ```
 
-Combines a local clone (which feeds the deterministic engine) with PR metadata fetched via your Octokit instance. The adapter does **not** instantiate Octokit — you control auth, rate limits, and retries.
+Combines a local clone (which feeds the deterministic engine) with PR metadata fetched via your Octokit instance. The adapter does **not** instantiate Octokit — you control auth, rate limits, and retries. The clone must already have the PR's base and head SHAs fetched (e.g. via `gh pr checkout <n>`); the adapter does not clone.
 
 ```ts
 import { Octokit } from '@octokit/rest';
 
 const adapter = new GitHubAdapter({
   repoDir: '/abs/path/to/local-clone',
-  octokit: new Octokit({ auth: process.env.GITHUB_TOKEN }),
   owner: 'nkwib',
   repo: 'pr-analyze',
-  pullNumber: 42
+  prNumber: 42,
+  client: new Octokit({ auth: process.env.GITHUB_TOKEN })
 });
 ```
 
@@ -170,12 +171,12 @@ interface CliAnalysisOutput extends AnalysisOutput {
 }
 ```
 
-Extends [`AnalysisOutput`](https://github.com/nkwib/pr-engine) from `@nkwib/pr-engine` with the triage layer and adapter identity. The shape is documented in detail at [/output-schema](/output-schema).
+Extends `AnalysisOutput` from `@prcompass/core` with the triage layer and adapter identity. The shape is documented in detail at [/output-schema](/output-schema).
 
 ## Putting it together
 
 ```ts
-import { LocalAdapter, runAnalyzeCommand, formatJson } from '@nkwib/pr-analyze';
+import { LocalAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
 
 async function main() {
   const adapter = new LocalAdapter({
