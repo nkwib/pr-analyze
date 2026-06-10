@@ -11,7 +11,7 @@
     <div class="hero-copy">
       <span class="badge">
         <span class="dot" aria-hidden="true"></span>
-        v0.1 · MIT · Node 20+ · git on $PATH
+        v0.1 · Apache-2.0 · Node 20+ · git on $PATH
       </span>
       <h1>
         One command.<br />

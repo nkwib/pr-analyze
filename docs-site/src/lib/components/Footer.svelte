@@ -15,7 +15,7 @@
       <a
         href="https://github.com/nkwib/pr-analyze/blob/main/LICENSE"
         target="_blank"
-        rel="noopener">MIT</a
+        rel="noopener">Apache-2.0</a
       >
     </div>
     <div class="copyright">© {year} · Built with SvelteKit + MDsveX</div>
