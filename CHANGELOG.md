@@ -16,12 +16,15 @@ All notable changes to this package will be documented in this file. The format 
   `triage.verdicts` (`{ path, verdict, reason }`, no `ruleId`), plus the
   `risk.files` / `churn.files` sibling arrays.
 - Removed the stale "package is `private: true`" claim from the guide.
+- Docs-site meta descriptions no longer imply the CLI itself can analyze a
+  GitHub PR; GitHub PR enrichment is programmatic-only, via `GitHubAdapter`.
 
 ### Added
 
 - GitHub Actions CI workflow (`typecheck`, `test`, `build`, `smoke`,
   dist-import smoke, and a docs-site build).
 - `repository.url` now uses the canonical `git+https://` form.
+- `package.json` now sets `homepage` to the GitHub repository.
 
 ## [0.1.0] — 2026-04-27
 
