@@ -6,7 +6,7 @@ title: '@prcompass/cli · Guide'
   <title>@prcompass/cli · Guide</title>
   <meta
     name="description"
-    content="PR Compass CLI — runs the deterministic OSS analysis pipeline against a local git repo or a GitHub PR. Triage + churn + cochange + hotspots + risk."
+    content="PR Compass CLI: runs the deterministic OSS analysis pipeline against local git diffs. The GitHub adapter is available through the programmatic API only. Triage + churn + cochange + hotspots + risk."
   />
 </svelte:head>
 
