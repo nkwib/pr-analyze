@@ -36,6 +36,7 @@
     "type": "git",
     "url": "git+https://github.com/nkwib/pr-analyze.git"
   },
+  "homepage": "https://github.com/nkwib/pr-analyze",
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",

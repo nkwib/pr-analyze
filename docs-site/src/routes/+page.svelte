@@ -2,7 +2,7 @@
   <title>@prcompass/cli — deterministic git-diff analysis on the command line</title>
   <meta
     name="description"
-    content="Run the deterministic OSS analysis pipeline over a local git diff or a GitHub PR. Triage + churn + cochange + hotspots + risk in one command."
+    content="Run the deterministic OSS analysis pipeline over a local git diff from the CLI, or a GitHub PR through the programmatic API. Triage + churn + cochange + hotspots + risk in one command."
   />
 </svelte:head>
 
