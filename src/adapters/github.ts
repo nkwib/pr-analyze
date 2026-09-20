@@ -1,8 +1,4 @@
-import type {
-  AnalyzeContext,
-  AnalyzeContextPR,
-  ProviderAdapter,
-} from "../vendor/core/index.js";
+import type { AnalyzeContext, AnalyzeContextPR, ProviderAdapter } from "@prcompass/core";
 
 import { LocalAdapter, type LocalAdapterOpts } from "./local.js";
 

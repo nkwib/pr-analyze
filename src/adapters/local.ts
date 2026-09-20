@@ -6,7 +6,7 @@ import {
   type DiffFile,
   type DiffStatus,
   type ProviderAdapter,
-} from "../vendor/core/index.js";
+} from "@prcompass/core";
 
 import { runGit, type GitRunner } from "../lib/git.js";
 
@@ -100,7 +100,7 @@ export class LocalAdapter implements ProviderAdapter {
       sha: m.sha,
       parentSha: m.parentSha,
       message: m.message,
-      authorLogin: m.authorLogin,
+      authorName: m.authorName,
       authoredAt: m.authoredAt,
       filesTouched: filesByCommit.get(m.sha) ?? [],
     }));

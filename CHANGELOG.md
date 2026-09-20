@@ -4,6 +4,30 @@ All notable changes to this package will be documented in this file. The format 
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced the vendored, trimmed reimplementations of the analysis engine
+  (`src/vendor/core`) and the triage filter (`src/vendor/pr-triage-filter`)
+  with real dependencies on `@prcompass/core` and
+  `@prcompass/pr-triage-filter` (both `^0.2.0`), now that they are published
+  on npm. `src/commands/analyze.ts` maps the published `AnalysisOutput` and
+  `ClassifyResult` shapes onto the CLI's existing, unchanged JSON contract.
+- `mining.bugFixCommits`, `churn.byFile[*].bugFixCommits`,
+  `hotspots[*].density`, `risk.byFile[*].score`, and
+  `risk.byFile[*].defectDensity.value` now come from the real engine's
+  bug-fix heuristic and smoothing/weighting formulas instead of the frozen
+  vendored copy: expect different (and more accurate) numbers on the same
+  input, not just a refactor.
+- `cochange.edges` now applies the published engine's minimum-co-change
+  threshold and mass-refactor commit filter, so it reports fewer, more
+  meaningful edges than the vendored copy did.
+- `triage.verdicts` now uses the published rule set, which classifies test
+  files, `.gitignore`, and CI workflow files more accurately than the
+  vendored copy did at extraction time.
+- `pr-analyze` maps the published triage filter's `ChangeType` (no
+  `copied` member) by treating `copied` files as `renamed`, since both
+  describe content that arrived from another path.
+
 ### Fixed
 
 - Documentation site now advertises the published npm names (`@prcompass/cli`,
