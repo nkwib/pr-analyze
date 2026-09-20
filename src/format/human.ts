@@ -1,5 +1,4 @@
-import type { CliAnalysisOutput } from "../commands/analyze.js";
-import type { FileRiskReport } from "../vendor/core/index.js";
+import type { CliAnalysisOutput, FileRiskReport } from "../commands/analyze.js";
 
 const TOP_RISK_LIMIT = 10;
 

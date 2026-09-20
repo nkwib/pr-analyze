@@ -105,7 +105,7 @@ Bayesian-smoothed bug-fix density per file, sorted descending. An **array** of `
 ]
 ```
 
-`density` pulls each per-file rate toward the repo-wide bug-fix rate (Bayesian smoothing) so files with very few touches don't dominate the ranking.
+`density` is `bugFixCommits / (totalCommits + 5)`: a fixed Bayesian prior (5 hypothetical clean commits) that discounts rarely-touched files so a single bug-fix commit doesn't dominate the ranking.
 
 ### `churn`
 
@@ -160,13 +160,13 @@ Per-file composite risk. `files` is the sorted list of paths; `byFile` maps each
         "value": 0.316,
         "groundedIn": ["abc1234", "def5678"]
       },
-      "caveats": ["no-history"]
+      "caveats": ["low-commit-history"]
     }
   }
 }
 ```
 
-`score` is a composite of smoothed defect density and `log1p(commitCount)`. It is `null` when the repo has no bug-fix history (in which case `caveats` includes `"no-bugfix-history"`); `score === null` means "no signal" — never confuse it with `0`. `defectDensity.value` is the Bayesian-smoothed bug-fix rate, and `defectDensity.groundedIn` lists the bug-fix commit SHAs that touched the file — the evidence behind the number.
+`score` is a weighted combination of the file's hotspot density, defect density, co-change coupling degree, and commit recency; each component drops out of the average when it has no signal for that file. It is `null` when the repo has no bug-fix history at all (in which case `caveats` includes `"no-bugfix-history-in-repo"`); `score === null` means "no signal", never confuse it with `0`. `defectDensity.value` is the raw ratio of bug-fix commits to total commits for the file (`number | null`, `null` under the same no-bug-fix-history condition), and `defectDensity.groundedIn` lists the bug-fix commit SHAs that touched the file, the evidence behind the number. Other caveats include `"low-commit-history"` (fewer than 5 commits) and `"single-bugfix-event"` (exactly one grounding commit).
 
 ### `triage`
 

@@ -45,6 +45,8 @@
     "smoke": "node dist/cli.js analyze --repo . --diff HEAD~1"
   },
   "dependencies": {
+    "@prcompass/core": "^0.2.0",
+    "@prcompass/pr-triage-filter": "^0.2.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {

@@ -165,13 +165,22 @@ A terminal-friendly summary. ANSI-free (no colors) so it copy-pastes cleanly int
 ### `CliAnalysisOutput`
 
 ```ts
-interface CliAnalysisOutput extends AnalysisOutput {
-  readonly triage: ClassifyResult;
+interface CliAnalysisOutput {
+  readonly version: string;
+  readonly head: { readonly sha: string; readonly baseSha: string };
+  readonly diff: { readonly fileCount: number };
+  readonly pr: AnalyzeContextPR | null;
+  readonly mining: { readonly totalCommits: number; readonly bugFixCommits: number };
+  readonly hotspots: readonly HotspotEntry[];
+  readonly churn: { readonly files: readonly string[]; readonly byFile: Record<string, FileChurnReport> };
+  readonly cochange: { readonly edges: readonly CoChangeEdge[] };
+  readonly risk: { readonly files: readonly string[]; readonly byFile: Record<string, FileRiskReport> };
+  readonly triage: { readonly verdicts: readonly FileVerdict[] };
   readonly adapter: { readonly name: string };
 }
 ```
 
-Extends `AnalysisOutput` from `@prcompass/core` with the triage layer and adapter identity. The shape is documented in detail at [/output-schema](/output-schema).
+Maps `@prcompass/core`'s `AnalysisOutput` and `@prcompass/pr-triage-filter`'s verdicts onto this frozen output shape; it does not re-export either package's types directly, since both have grown fields since `@prcompass/cli`'s v0.1.x contract was fixed. The shape is documented in detail at [/output-schema](/output-schema).
 
 ## Putting it together
 
