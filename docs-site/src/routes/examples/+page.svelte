@@ -128,12 +128,19 @@ jobs:
   <section class="ex">
     <div class="ex-head">
       <span class="tag">3</span>
-      <h2>Programmatic — analyse a remote PR</h2>
+      <h2>Analyze a GitHub pull request</h2>
     </div>
     <p class="ex-desc">
-      The <code>GitHubAdapter</code> needs both a local clone (for the engine
-      to walk history) and a PR number (for metadata enrichment). Bring your
-      own Octokit so auth and rate-limits stay under your control.
+      From the shell, <code>--github</code> is the direct route:
+    </p>
+    <pre class="code-block language-bash" data-lang="bash"><code>{`gh pr checkout 42
+GITHUB_TOKEN=\${GITHUB_TOKEN} prcompass analyze --repo . --github nkwib/pr-analyze#42`}</code></pre>
+    <p class="ex-desc">
+      Programmatically, the <code>GitHubAdapter</code> needs both a local
+      clone (for the engine to walk history) and a PR number (for metadata
+      enrichment). Bring your own Octokit so auth and rate-limits stay under
+      your control; the CLI's own <code>fetch</code>-based client is
+      internal and not exported.
     </p>
     <pre class="code-block language-typescript" data-lang="typescript"><code>{`// scripts/analyze-pr.ts
 import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
