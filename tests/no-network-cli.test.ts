@@ -32,7 +32,7 @@ function fakeRunner(map: ReadonlyMap<string, string>): GitRunner {
  * `fetch` or the GitHub deps, even though the same command now supports
  * `--github`.
  */
-describe("resolveAdapter — local mode no-network invariant", () => {
+describe("resolveAdapter: local mode no-network invariant", () => {
   it("--diff never calls fetch and never touches the GitHub deps", async () => {
     const fetchAttempts: string[] = [];
     const originalFetch = globalThis.fetch;

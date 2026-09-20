@@ -44,7 +44,7 @@ A JSON object containing:
 
 - `version` — `ANALYSIS_SCHEMA_VERSION` from `@prcompass/core`.
 - `head.sha` / `head.baseSha` — resolved SHAs for the diff range.
-- `pr` — PR metadata when `--github` is used; `null` for `--diff`.
+- `pr`: PR metadata when `--github` is used, `null` for `--diff`.
 - `diff.files` — per-file status, additions, deletions, and unified-diff patch.
 - `mining` — bug-fix vs total commit stats over the repo history.
 - `hotspots` — Bayesian-smoothed bug-fix density per file.
