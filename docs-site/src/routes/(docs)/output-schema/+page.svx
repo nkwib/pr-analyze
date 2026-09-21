@@ -67,7 +67,7 @@ The per-file change set is not duplicated here — the triage pass (below) repor
 
 ### `pr`
 
-PR metadata — present only when a `GitHubAdapter` was used; otherwise `null`. Local-mode runs never produce a non-null `pr`.
+PR metadata, present only for `--github` (or a programmatic `GitHubAdapter`); `null` for `--diff`. Everything else in this document (`mining`, `hotspots`, `churn`, `cochange`, `risk`) comes from the local clone's `git` history either way, `pr` is the only field GitHub enriches.
 
 ```json
 "pr": {

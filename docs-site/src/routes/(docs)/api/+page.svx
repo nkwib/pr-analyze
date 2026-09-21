@@ -84,6 +84,8 @@ interface GitHubAdapterOpts {
 
 Combines a local clone (which feeds the deterministic engine) with PR metadata fetched via your Octokit instance. The adapter does **not** instantiate Octokit — you control auth, rate limits, and retries. The clone must already have the PR's base and head SHAs fetched (e.g. via `gh pr checkout <n>`); the adapter does not clone.
 
+The CLI's `--github <owner>/<repo>#<number>` flag (see [Commands](/commands)) wires this adapter to an internal `fetch`-based client instead, reading `GITHUB_TOKEN` / `GH_TOKEN` from the environment; that client is not exported.
+
 ```ts
 import { Octokit } from '@octokit/rest';
 

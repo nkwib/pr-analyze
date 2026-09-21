@@ -2,7 +2,7 @@
   <title>@prcompass/cli — deterministic git-diff analysis on the command line</title>
   <meta
     name="description"
-    content="Run the deterministic OSS analysis pipeline over local git diffs. The GitHub adapter is available through the programmatic API only. Triage + churn + cochange + hotspots + risk in one command."
+    content="Run the deterministic OSS analysis pipeline over local git diffs or a GitHub pull request via --github. Triage + churn + cochange + hotspots + risk in one command."
   />
 </svelte:head>
 
@@ -123,9 +123,9 @@
       </div>
       <h3>Local + GitHub</h3>
       <p>
-        <code>LocalAdapter</code> shells out to <code>git</code> — no network.
-        <code>GitHubAdapter</code> (programmatic) enriches with PR metadata
-        via your own Octokit.
+        <code>--diff</code> shells out to <code>git</code>, no network.
+        <code>--github owner/repo#42</code> enriches the same local-clone
+        analysis with PR metadata from the GitHub API.
       </p>
     </div>
 

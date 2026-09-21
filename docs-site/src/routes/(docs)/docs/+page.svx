@@ -6,13 +6,13 @@ title: '@prcompass/cli · Guide'
   <title>@prcompass/cli · Guide</title>
   <meta
     name="description"
-    content="PR Compass CLI: runs the deterministic OSS analysis pipeline against local git diffs. The GitHub adapter is available through the programmatic API only. Triage + churn + cochange + hotspots + risk."
+    content="PR Compass CLI: runs the deterministic OSS analysis pipeline against local git diffs or a GitHub pull request via --github. Triage + churn + cochange + hotspots + risk."
   />
 </svelte:head>
 
 # Guide
 
-The PR Compass CLI runs the deterministic OSS analysis pipeline over a git diff. Output is **JSON by default** (one document to stdout); pass `--format human` for a terminal-friendly summary.
+The PR Compass CLI runs the deterministic OSS analysis pipeline over a git diff, or a GitHub pull request. Output is **JSON by default** (one document to stdout); pass `--format human` for a terminal-friendly summary.
 
 ESM-only. Requires **Node 20+** and **`git` available on `$PATH`**.
 
@@ -88,7 +88,15 @@ prcompass analyze --repo /path/to/repo --diff main..HEAD
 
 ### `GitHubAdapter`
 
-Programmatic only — there is no `--github` flag. Use it when you have a local clone *and* want to enrich the result with PR metadata (number, title, author). You provide the Octokit client; the adapter never instantiates one for you.
+Used by the CLI's `--github` flag, and available programmatically for callers who want their own client. It fetches PR metadata (number, title, author, base/head SHAs) from the GitHub REST API, then delegates commit history and diff extraction to `LocalAdapter` against a local clone. The clone must already have the PR's base and head commits fetched (e.g. `gh pr checkout <n>`); the adapter does not clone.
+
+```sh
+GITHUB_TOKEN=... prcompass analyze --repo /abs/path/to/local-clone --github nkwib/pr-analyze#42
+```
+
+`--diff` and `--github` are mutually exclusive; pass exactly one. Auth reads `GITHUB_TOKEN` (falls back to `GH_TOKEN`) from the environment, never from a CLI argument.
+
+Programmatically, you provide the client (an object shaped like `GitHubClientLike`, e.g. an Octokit instance). The CLI's own `--github` flag uses an internal `fetch`-based client, not exported, so the package stays dependency-free:
 
 ```ts
 import { GitHubAdapter, runAnalyzeCommand, formatJson } from '@prcompass/cli';
@@ -106,7 +114,7 @@ const output = await runAnalyzeCommand(adapter);
 process.stdout.write(formatJson(output, { pretty: true }));
 ```
 
-The local clone is what feeds the deterministic engine — the GitHub API enriches the output with `pr` metadata, but does not influence the per-file metrics.
+The local clone is what feeds the deterministic engine, the GitHub API only enriches the output with `pr` metadata; `mining`, `hotspots`, `churn`, `cochange`, and `risk` come from the same local `git` history and diff as `--diff`.
 
 <h2 id="exit-codes">Exit codes</h2>
 

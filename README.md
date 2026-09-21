@@ -1,6 +1,6 @@
 # @prcompass/cli
 
-The PR Compass command-line interface. Runs the deterministic OSS analysis pipeline over a local git diff. Output is JSON by default; `--format human` for a terminal summary.
+The PR Compass command-line interface. Runs the deterministic OSS analysis pipeline over a local git diff, or a GitHub pull request. Output is JSON by default; `--format human` for a terminal summary.
 
 ## Install
 
@@ -30,13 +30,21 @@ Human-friendly summary:
 prcompass analyze --repo . --diff HEAD~1 --format human
 ```
 
+A GitHub pull request, using a local clone that already has the PR's base and head commits fetched (e.g. via `gh pr checkout 42`):
+
+```bash
+GITHUB_TOKEN=... prcompass analyze --repo . --github nkwib/pr-analyze#42
+```
+
+`--diff` and `--github` are mutually exclusive; pass exactly one.
+
 ## What you get
 
 A JSON object containing:
 
 - `version` — `ANALYSIS_SCHEMA_VERSION` from `@prcompass/core`.
 - `head.sha` / `head.baseSha` — resolved SHAs for the diff range.
-- `pr` — PR metadata when a GitHub adapter is used programmatically; `null` for the CLI's local mode.
+- `pr`: PR metadata when `--github` is used, `null` for `--diff`.
 - `diff.files` — per-file status, additions, deletions, and unified-diff patch.
 - `mining` — bug-fix vs total commit stats over the repo history.
 - `hotspots` — Bayesian-smoothed bug-fix density per file.
@@ -49,7 +57,14 @@ Every numeric claim in `risk` is grounded by real commit SHAs or is `null`. The 
 
 ## Adapters
 
-The CLI uses `LocalAdapter`, which shells out to `git` against a local repository — no network I/O. A `GitHubAdapter` is also exported from the programmatic API for callers who want to enrich a local diff with PR metadata via Octokit; the CLI does not yet expose it as a flag.
+`LocalAdapter` shells out to `git` against a local repository, no network I/O; used by `--diff`.
+
+`GitHubAdapter`, used by `--github`, fetches the PR's title, body, author, and base/head SHAs from the GitHub REST API (implemented over global `fetch`, no `octokit` dependency), then delegates commit history and diff extraction to `LocalAdapter` against the local clone at `--repo`. This means:
+
+- `pr` metadata is real GitHub API data.
+- `mining`, `hotspots`, `churn`, `cochange`, and `risk` are computed the same way as `--diff`, from the local clone's `git log` and `git diff`, not from anything GitHub-only. They are only as complete as the clone: the PR's base and head commits must already be fetched (`gh pr checkout <n>`, or a manual `git fetch`).
+- Auth: set `GITHUB_TOKEN` (or `GH_TOKEN`) in the environment. Never pass a token as a CLI argument.
+- Errors: a missing token, a 401/403 from GitHub, a 404 (bad owner/repo/number, or no access), and rate limiting (read from `x-ratelimit-remaining` / `x-ratelimit-reset`) all fail with a specific message instead of a generic HTTP error.
 
 ## Releasing
 

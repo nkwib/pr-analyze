@@ -3,15 +3,17 @@ import { existsSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { Command, Option } from "commander";
 
-import { LocalAdapter } from "./adapters/local.js";
 import { runAnalyzeCommand } from "./commands/analyze.js";
+import { resolveAdapter } from "./commands/resolve-adapter.js";
 import { formatHuman } from "./format/human.js";
 import { formatJson } from "./format/json.js";
+import { createFetchGitHubClient, resolveGitHubToken } from "./lib/github-client.js";
 
 interface AnalyzeOptions {
   readonly local?: boolean;
   readonly repo?: string;
-  readonly diff: string;
+  readonly diff?: string;
+  readonly github?: string;
   readonly format: "json" | "human";
   readonly pretty?: boolean;
   readonly maxCommits?: string;
@@ -32,11 +34,15 @@ program
     "Analyse a git diff. Outputs JSON to stdout by default; pass --format human for a terminal-friendly summary.",
   )
   .option("--repo <path>", "path to a local git repository", process.cwd())
-  .requiredOption(
+  .option(
     "--diff <range>",
-    'git diff range (e.g. "HEAD~1..HEAD", "main..feature", or a single ref interpreted as "<ref>..HEAD")',
+    'git diff range (e.g. "HEAD~1..HEAD", "main..feature", or a single ref interpreted as "<ref>..HEAD"). Mutually exclusive with --github.',
   )
-  .option("--local", "use the LocalAdapter (default and currently only mode)", true)
+  .option(
+    "--github <owner/repo#number>",
+    'analyze a GitHub pull request, e.g. "nkwib/pr-analyze#42". Needs GITHUB_TOKEN (or GH_TOKEN) in the environment and a local clone at --repo with the PR base and head commits already fetched. Mutually exclusive with --diff.',
+  )
+  .option("--local", "use the LocalAdapter (implied by --diff)", true)
   .addOption(
     new Option("--format <kind>", "output format")
       .choices(["json", "human"])
@@ -48,11 +54,18 @@ program
     const repo = resolve(rawOpts.repo ?? process.cwd());
     assertGitRepo(repo);
     const maxCommits = parseMaxCommits(rawOpts.maxCommits);
-    const adapter = new LocalAdapter({
-      repoDir: repo,
-      diff: rawOpts.diff,
-      maxCommits,
-    });
+    const adapter = resolveAdapter(
+      {
+        repoDir: repo,
+        maxCommits,
+        ...(rawOpts.diff !== undefined ? { diff: rawOpts.diff } : {}),
+        ...(rawOpts.github !== undefined ? { github: rawOpts.github } : {}),
+      },
+      {
+        resolveToken: () => resolveGitHubToken(process.env),
+        createClient: (token) => createFetchGitHubClient({ token }),
+      },
+    );
     const output = await runAnalyzeCommand(adapter);
     if (rawOpts.format === "human") {
       process.stdout.write(formatHuman(output));

@@ -4,6 +4,19 @@ All notable changes to this package will be documented in this file. The format 
 
 ## [Unreleased]
 
+### Added
+
+- `prcompass analyze --github <owner>/<repo>#<number>` analyzes a GitHub pull
+  request, mutually exclusive with `--diff`. It fetches PR metadata (title,
+  body, author, base/head SHAs) from the GitHub REST API via a `fetch`-based
+  `GitHubClientLike` (no `octokit` dependency added), then reuses
+  `LocalAdapter` against the local clone at `--repo` for commit history and
+  the diff itself, so `mining`, `hotspots`, `churn`, `cochange`, and `risk`
+  are computed identically to `--diff`, not from anything GitHub-only. The
+  clone must already have the PR's base and head commits fetched (e.g.
+  `gh pr checkout <n>`). Auth reads `GITHUB_TOKEN` (falls back to
+  `GH_TOKEN`) from the environment; never accepted as a CLI argument.
+
 ### Changed
 
 - Replaced the vendored, trimmed reimplementations of the analysis engine

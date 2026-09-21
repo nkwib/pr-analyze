@@ -6,7 +6,7 @@ title: '@prcompass/cli · Commands'
   <title>@prcompass/cli · Commands</title>
   <meta
     name="description"
-    content="Complete command reference for the prcompass CLI: analyze, every flag, every default."
+    content="Complete command reference for the prcompass CLI: analyze, --diff, --github, every flag, every default."
   />
 </svelte:head>
 
@@ -30,20 +30,29 @@ prcompass analyze [options]
 
 ### Required flags
 
-| Flag             | Default       | Meaning                                                                                              |
-| ---------------- | ------------- | ---------------------------------------------------------------------------------------------------- |
-| `--repo <path>`  | `process.cwd()` | Path to a local git repository. Resolved to an absolute path before being passed to the adapter.   |
-| `--diff <range>` | _(no default)_ | Git diff range. See [diff range syntax](/docs#diff-range) for accepted forms. |
+| Flag            | Default         | Meaning                                                                                           |
+| --------------- | --------------- | --------------------------------------------------------------------------------------------------- |
+| `--repo <path>` | `process.cwd()` | Path to a local git repository. Resolved to an absolute path before being passed to the adapter.   |
+
+Exactly one of the following two flags is also required:
+
+| Flag                          | Meaning                                                                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--diff <range>`              | Git diff range. See [diff range syntax](/docs#diff-range) for accepted forms.                                                                                     |
+| `--github <owner/repo#number>` | Analyze a GitHub pull request, e.g. `nkwib/pr-analyze#42`. Needs `GITHUB_TOKEN` (or `GH_TOKEN`) in the environment, and a local clone at `--repo` with the PR's base and head commits already fetched (e.g. `gh pr checkout <n>`). |
+
+Passing both, or neither, is an error.
 
 ```sh
 prcompass analyze --repo . --diff HEAD~1..HEAD
+GITHUB_TOKEN=... prcompass analyze --repo . --github nkwib/pr-analyze#42
 ```
 
 ### Optional flags
 
 | Flag                | Default | Meaning                                                                              |
 | ------------------- | ------- | ------------------------------------------------------------------------------------ |
-| `--local`           | `true`  | Use the `LocalAdapter`. Currently the only mode supported by the CLI binary.         |
+| `--local`           | `true`  | Cosmetic; `--diff` always implies the `LocalAdapter`. Has no effect on its own.       |
 | `--format <kind>`   | `json`  | One of `json` \| `human`. `human` writes a terminal summary; `json` is pipe-friendly. |
 | `--pretty`          | `false` | Pretty-print JSON output with 2-space indent. No effect when `--format human`.      |
 | `--max-commits <n>` | `5000`  | Cap commit-history walk. Higher values trade analysis latency for older history.    |
@@ -65,14 +74,18 @@ prcompass analyze --repo /path/to/big-repo --diff main..feature --max-commits 10
 
 # Pipe the result into jq
 prcompass analyze --repo . --diff HEAD~1 | jq '.triage.verdicts | group_by(.verdict) | map({verdict: .[0].verdict, count: length})'
+
+# Analyze a GitHub PR against a local clone that already has it fetched
+gh pr checkout 42
+GITHUB_TOKEN=... prcompass analyze --repo . --github nkwib/pr-analyze#42
 ```
 
 ### What it runs
 
 Behind the scenes, `analyze` does:
 
-1. Resolves `--diff` into `(baseSha, headSha)` via `git rev-parse`.
-2. Calls the configured adapter's `collect()` method to produce an `AnalyzeContext` (commits + diff + optional PR metadata).
+1. For `--diff`, resolves the range into `(baseSha, headSha)` via `git rev-parse`. For `--github`, fetches the PR from the GitHub REST API to get `(baseSha, headSha)` and PR metadata, then resolves those SHAs the same way.
+2. Calls the configured adapter's `collect()` method to produce an `AnalyzeContext` (commits + diff + optional PR metadata). Commit history and the diff itself always come from the local clone at `--repo`, for both flags.
 3. Runs the deterministic engine from `@prcompass/core` (mining → churn → cochange → hotspots → risk).
 4. Runs the file triage from `@prcompass/pr-triage-filter` over the diff files.
 5. Serialises the combined output (`CliAnalysisOutput`).
@@ -106,15 +119,24 @@ $ prcompass analyze --help
 Usage: prcompass analyze [options]
 
 Options:
-  --repo <path>        path to a local git repository (default: cwd)
-  --diff <range>       git diff range (e.g. "HEAD~1..HEAD", "main..feature",
-                       or a single ref interpreted as "<ref>..HEAD")
-  --local              use the LocalAdapter (default)
-  --format <kind>      output format (choices: "json", "human", default:
-                       "json")
-  --pretty             pretty-print JSON output
-  --max-commits <n>    cap commit history walk (default: "5000")
-  -h, --help           display help for command
+  --repo <path>                 path to a local git repository (default: cwd)
+  --diff <range>                git diff range (e.g. "HEAD~1..HEAD",
+                                 "main..feature", or a single ref interpreted
+                                 as "<ref>..HEAD"). Mutually exclusive with
+                                 --github.
+  --github <owner/repo#number>  analyze a GitHub pull request, e.g.
+                                 "nkwib/pr-analyze#42". Needs GITHUB_TOKEN (or
+                                 GH_TOKEN) in the environment and a local
+                                 clone at --repo with the PR base and head
+                                 commits already fetched. Mutually exclusive
+                                 with --diff.
+  --local                       use the LocalAdapter (implied by --diff)
+                                 (default: true)
+  --format <kind>               output format (choices: "json", "human",
+                                 default: "json")
+  --pretty                      pretty-print JSON output
+  --max-commits <n>             cap commit history walk (default: "5000")
+  -h, --help                    display help for command
 ```
 
 ## Future commands
